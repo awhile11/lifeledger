@@ -1,0 +1,352 @@
+/* Import Audiowide font */
+@import url('https://fonts.googleapis.com/css2?family=Audiowide&display=swap');
+
+.login-container {
+  min-height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 20px;
+  background: #0F172A;
+}
+
+.split-layout {
+  display: flex;
+  width: 100%;
+  max-width: 1000px;
+  min-height: 500px;
+  background: #0F172A;
+  border-radius: 30px;
+  overflow: hidden;
+  box-shadow: 0 20px 40px rgba(0, 0, 0, 0.4);
+}
+
+/* Left Side - Branding */
+.brand-side {
+  flex: 1;
+  background: #0F172A;
+  padding: 40px 30px;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  color: white;
+  position: relative;
+  overflow: hidden;
+}
+
+/* Circles Container */
+.circles-container {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+}
+
+.circle {
+  position: absolute;
+  background: #182134;
+  border-radius: 50%;
+  animation: float 6s ease-in-out infinite;
+}
+
+.circle-1 {
+  width: 150px;
+  height: 150px;
+  top: -40px;
+  left: -40px;
+  animation-delay: 0s;
+}
+
+/* Just moved this circle slightly to the left */
+.circle-2 {
+  width: 200px;
+  height: 200px;
+  bottom: -60px;
+  right: 20px; /* Changed from -60px to 20px - moved left */
+  animation-delay: 2s;
+}
+
+.circle-3 {
+  width: 100px;
+  height: 100px;
+  top: 50%;
+  left: 30%;
+  animation-delay: 4s;
+}
+
+@keyframes float {
+  0% {
+    transform: translateY(0px) rotate(0deg);
+  }
+  50% {
+    transform: translateY(-15px) rotate(5deg);
+  }
+  100% {
+    transform: translateY(0px) rotate(0deg);
+  }
+}
+
+.brand-content {
+  position: relative;
+  z-index: 2;
+}
+
+.brand-title {
+  font-family: 'Audiowide', cursive;
+  font-size: 40px;
+  font-weight: 400;
+  margin-bottom: 20px;
+  line-height: 1.2;
+  letter-spacing: 2px;
+  color: white;
+  text-shadow: 0 0 10px rgba(255, 255, 255, 0.3);
+}
+
+.brand-slogan p {
+  font-family: 'Audiowide', cursive;
+  font-size: 13px;
+  line-height: 1.8;
+  margin: 0;
+  font-weight: 400;
+  letter-spacing: 1px;
+  color: white;
+  text-shadow: 0 0 8px rgba(255, 255, 255, 0.2);
+}
+
+.brand-slogan p:first-child {
+  font-size: 13px;
+  color: #fff;
+}
+
+.brand-slogan p:last-child {
+  font-size: 13px;
+  color: #fff;
+}
+
+/* Right Side - Form */
+.form-side {
+  flex: 0.8;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 30px;
+  background: #0F172A;
+}
+.error-message {
+  background-color: rgba(255, 87, 87, 0.1);
+  color: #ff5757;
+  padding: 10px;
+  border-radius: 8px;
+  margin-bottom: 20px;
+  font-family: 'Audiowide', cursive;
+  font-size: 12px;
+  border: 1px solid #ff5757;
+}
+
+/* Update .btn styles to handle disabled state */
+.btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.btn:disabled:hover {
+  transform: none;
+  box-shadow: none;
+}
+.login-box {
+  width: 100%;
+  max-width: 320px;
+  text-align: center;
+}
+
+.input-group {
+  width: 100%;
+  margin-bottom: 15px;
+}
+
+.input-group input {
+  width: 100%;
+  padding: 12px 18px;
+  border: 2px solid #182134;
+  border-radius: 10px;
+  font-size: 14px;
+  outline: none;
+  transition: all 0.3s;
+  background-color: #182134;
+  font-family: 'Audiowide', cursive;
+  color: white;
+}
+
+.input-group input:focus {
+  border-color: #2d3a52;
+  background-color: #1e2a3a;
+}
+
+.input-group input::placeholder {
+  color: #8895aa;
+  font-size: 13px;
+  font-family: 'Audiowide', cursive;
+}
+
+.button-group {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  margin: 20px 0 12px 0;
+}
+
+.btn {
+  width: 100%;
+  padding: 12px 0;
+  border: none;
+  border-radius: 10px;
+  font-size: 14px;
+  font-weight: 400;
+  cursor: pointer;
+  transition: all 0.3s;
+  font-family: 'Audiowide', cursive;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  background: #182134;
+  color: white;
+  border: 1px solid #2d3a52;
+}
+
+.signup-btn:hover {
+  background: #1e2a3a;
+  transform: translateY(-2px);
+  box-shadow: 0 8px 16px rgba(0, 0, 0, 0.3);
+  border-color: #3d4a62;
+}
+
+.login-btn:hover {
+  background: #1e2a3a;
+  transform: translateY(-2px);
+  box-shadow: 0 8px 16px rgba(0, 0, 0, 0.3);
+  border-color: #3d4a62;
+}
+
+.forgot-password {
+  text-align: right;
+}
+
+.forgot-password a {
+  color: #8895aa;
+  text-decoration: none;
+  font-size: 12px;
+  font-weight: 400;
+  transition: color 0.3s;
+  font-family: 'Audiowide', cursive;
+}
+
+.forgot-password a:hover {
+  color: white;
+  text-decoration: underline;
+}
+
+/* Responsive Design */
+@media (max-width: 968px) {
+  .split-layout {
+    flex-direction: column;
+    max-width: 400px;
+    min-height: auto;
+  }
+
+  .brand-side {
+    padding: 30px 20px;
+    text-align: center;
+  }
+
+  .brand-title {
+    font-size: 32px;
+  }
+
+  .brand-slogan p {
+    font-size: 14px;
+  }
+
+  .brand-slogan p:first-child,
+  .brand-slogan p:last-child {
+    font-size: 16px;
+  }
+
+  .form-side {
+    padding: 30px 20px;
+    flex: 1;
+  }
+
+  .login-box {
+    max-width: 280px;
+  }
+
+  .circle-1 {
+    width: 120px;
+    height: 120px;
+  }
+
+  .circle-2 {
+    width: 150px;
+    height: 150px;
+    right: 10px; /* Adjusted for mobile */
+  }
+
+  .circle-3 {
+    width: 80px;
+    height: 80px;
+  }
+}
+
+@media (max-width: 480px) {
+  .brand-side {
+    padding: 25px 15px;
+  }
+
+  .brand-title {
+    font-size: 28px;
+  }
+
+  .brand-slogan p {
+    font-size: 12px;
+  }
+
+  .brand-slogan p:first-child,
+  .brand-slogan p:last-child {
+    font-size: 14px;
+  }
+
+  .form-side {
+    padding: 25px 15px;
+  }
+
+  .login-box {
+    max-width: 250px;
+  }
+
+  .input-group input {
+    padding: 10px 14px;
+    font-size: 13px;
+  }
+
+  .btn {
+    padding: 10px 0;
+    font-size: 13px;
+  }
+
+  .circle-1 {
+    width: 80px;
+    height: 80px;
+  }
+
+  .circle-2 {
+    width: 100px;
+    height: 100px;
+    right: 5px; /* Adjusted for mobile */
+  }
+
+  .circle-3 {
+    width: 60px;
+    height: 60px;
+  }
+}

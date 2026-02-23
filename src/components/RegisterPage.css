@@ -1,0 +1,404 @@
+.register-container {
+  min-height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 20px;
+  background: #0F172A;
+}
+
+.split-layout {
+  display: flex;
+  width: 100%;
+  max-width: 1000px;
+  min-height: 500px;
+  background: #0F172A;
+  border-radius: 30px;
+  overflow: hidden;
+  box-shadow: 0 20px 40px rgba(0, 0, 0, 0.4);
+}
+
+/* Left Side - Branding (same as login) */
+.brand-side {
+  flex: 1;
+  background: #0F172A;
+  padding: 40px 30px;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  color: white;
+  position: relative;
+  overflow: hidden;
+}
+
+.circles-container {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+}
+
+.circle {
+  position: absolute;
+  background: #182134;
+  border-radius: 50%;
+  animation: float 6s ease-in-out infinite;
+}
+
+.circle-1 {
+  width: 150px;
+  height: 150px;
+  top: -40px;
+  left: -40px;
+  animation-delay: 0s;
+}
+
+.circle-2 {
+  width: 200px;
+  height: 200px;
+  bottom: -60px;
+  right: 20px;
+  animation-delay: 2s;
+}
+
+.circle-3 {
+  width: 100px;
+  height: 100px;
+  top: 50%;
+  left: 30%;
+  animation-delay: 4s;
+}
+
+@keyframes float {
+  0% {
+    transform: translateY(0px) rotate(0deg);
+  }
+  50% {
+    transform: translateY(-15px) rotate(5deg);
+  }
+  100% {
+    transform: translateY(0px) rotate(0deg);
+  }
+}
+
+.brand-content {
+  position: relative;
+  z-index: 2;
+}
+
+.brand-title {
+  font-family: 'Audiowide', cursive;
+  font-size: 40px;
+  font-weight: 400;
+  margin-bottom: 20px;
+  line-height: 1.2;
+  letter-spacing: 2px;
+  color: white;
+  text-shadow: 0 0 10px rgba(255, 255, 255, 0.3);
+}
+
+.brand-slogan p {
+  font-family: 'Audiowide', cursive;
+  font-size: 16px;
+  line-height: 1.8;
+  margin: 0;
+  font-weight: 400;
+  letter-spacing: 1px;
+  color: white;
+  text-shadow: 0 0 8px rgba(255, 255, 255, 0.2);
+}
+
+.brand-slogan p:first-child {
+  font-size: 18px;
+  color: #fff;
+}
+
+.brand-slogan p:last-child {
+  font-size: 18px;
+  color: #fff;
+}
+
+/* Right Side - Register Form */
+.form-side {
+  flex: 0.8;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 30px;
+  background: #0F172A;
+}
+
+.register-box {
+  width: 100%;
+  max-width: 380px;
+  text-align: center;
+}
+
+.form-title {
+  font-family: 'Audiowide', cursive;
+  color: white;
+  font-size: 22px;
+  margin-bottom: 25px;
+  letter-spacing: 1px;
+}
+
+/* Name group for two columns */
+.name-group {
+  display: flex;
+  gap: 12px;
+  margin-bottom: 15px;
+}
+
+.input-group {
+  width: 100%;
+  margin-bottom: 15px;
+}
+
+.input-group.half {
+  width: calc(50% - 6px);
+  margin-bottom: 0;
+}
+
+.input-group input {
+  width: 100%;
+  padding: 14px 18px;
+  background: #182134;
+  border: 2px solid #22D3EE;
+  border-radius: 10px;
+  font-family: 'Audiowide', cursive;
+  color: white;
+  font-size: 15px;
+  outline: none;
+  transition: all 0.3s;
+}
+
+.input-group input:focus {
+  border-color: #22D3EE;
+  box-shadow: 0 0 15px rgba(34, 211, 238, 0.3);
+  background: #1e2a3a;
+}
+
+.input-group input::placeholder {
+  color: #4A5568;
+  font-size: 14px;
+  font-family: 'Audiowide', cursive;
+}
+
+.input-group input:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+/* Info Text */
+.info-text {
+  margin: 10px 0 15px 0;
+  text-align: left;
+}
+
+.info-text p {
+  color: #8895aa;
+  font-size: 12px;
+  font-style: italic;
+  font-family: 'Audiowide', cursive;
+}
+
+.button-group {
+  margin: 25px 0 15px 0;
+}
+
+.btn {
+  width: 100%;
+  padding: 12px 0;
+  border: none;
+  border-radius: 10px;
+  font-size: 14px;
+  font-weight: 400;
+  cursor: pointer;
+  transition: all 0.3s;
+  font-family: 'Audiowide', cursive;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+}
+
+.register-btn {
+  width: 100%;
+  padding: 14px 0;
+  background: #22D3EE;
+  color: #0F172A;
+  font-family: 'Audiowide', cursive;
+  font-size: 16px;
+  font-weight: bold;
+  border: 2px solid #22D3EE;
+  border-radius: 10px;
+  cursor: pointer;
+  transition: all 0.3s;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+}
+
+.register-btn:hover:not(:disabled) {
+  background: transparent;
+  color: #22D3EE;
+  transform: translateY(-2px);
+  box-shadow: 0 5px 15px rgba(34, 211, 238, 0.3);
+}
+
+.register-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.login-link {
+  margin-top: 20px;
+  text-align: center;
+}
+
+.login-link p {
+  color: #8895aa;
+  font-family: 'Audiowide', cursive;
+  font-size: 14px;
+}
+
+.login-link a {
+  color: #22D3EE;
+  text-decoration: none;
+  transition: color 0.3s;
+  cursor: pointer;
+}
+
+.login-link a:hover {
+  color: #8895aa;
+  text-decoration: underline;
+}
+
+.error-message {
+  background: rgba(255, 87, 87, 0.1);
+  border: 1px solid #ff5757;
+  color: #ff5757;
+  padding: 12px;
+  border-radius: 8px;
+  margin-bottom: 20px;
+  font-size: 14px;
+  text-align: center;
+  font-family: 'Audiowide', cursive;
+}
+
+.success-message {
+  background: rgba(75, 181, 67, 0.1);
+  border: 1px solid #4bb543;
+  color: #4bb543;
+  padding: 12px;
+  border-radius: 8px;
+  margin-bottom: 20px;
+  font-size: 14px;
+  text-align: center;
+  font-family: 'Audiowide', cursive;
+}
+
+/* Responsive Design */
+@media (max-width: 968px) {
+  .split-layout {
+    flex-direction: column;
+    max-width: 400px;
+  }
+
+  .brand-side {
+    padding: 30px 20px;
+    text-align: center;
+  }
+
+  .brand-title {
+    font-size: 32px;
+  }
+
+  .brand-slogan p {
+    font-size: 14px;
+  }
+
+  .form-side {
+    padding: 30px 20px;
+  }
+
+  .register-box {
+    max-width: 100%;
+    padding: 30px 20px;
+  }
+
+  .form-title {
+    font-size: 20px;
+  }
+
+  .circle-2 {
+    right: 10px;
+  }
+}
+
+@media (max-width: 768px) {
+  .name-group {
+    flex-direction: column;
+    gap: 15px;
+  }
+
+  .input-group.half {
+    width: 100%;
+  }
+
+  .input-group input {
+    padding: 12px 16px;
+    font-size: 14px;
+  }
+
+  .register-btn {
+    padding: 12px 0;
+    font-size: 15px;
+  }
+}
+
+@media (max-width: 480px) {
+  .brand-side {
+    padding: 25px 15px;
+  }
+
+  .brand-title {
+    font-size: 28px;
+  }
+
+  .form-side {
+    padding: 25px 15px;
+  }
+
+  .register-box {
+    padding: 25px 15px;
+  }
+
+  .form-title {
+    font-size: 18px;
+    margin-bottom: 20px;
+  }
+
+  .input-group input {
+    padding: 10px 14px;
+    font-size: 13px;
+  }
+
+  .register-btn {
+    padding: 10px 0;
+    font-size: 14px;
+  }
+
+  .login-link p {
+    font-size: 12px;
+  }
+
+  .error-message,
+  .success-message {
+    padding: 10px;
+    font-size: 12px;
+  }
+
+  .info-text p {
+    font-size: 11px;
+  }
+}

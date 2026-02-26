@@ -23,14 +23,26 @@ function ActivityTracking() {
     isActive: false
   });
   const [timeRemaining, setTimeRemaining] = useState('');
-  const [timerStatus, setTimerStatus] = useState('inactive'); // 'inactive', 'waiting', 'active', 'completed'
+  const [timerStatus, setTimerStatus] = useState('inactive');
   const [timerInterval, setTimerInterval] = useState(null);
 
-  // Tasks State
-  const [taskItems, setTaskItems] = useState([]);
+  // Tasks State - NEW STRUCTURE
+  const [tasksByDay, setTasksByDay] = useState({
+    Monday: [],
+    Tuesday: [],
+    Wednesday: [],
+    Thursday: [],
+    Friday: [],
+    Saturday: [],
+    Sunday: []
+  });
+  const [currentDay, setCurrentDay] = useState(() => {
+    const days = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
+    const today = new Date().getDay();
+    return days[today];
+  });
   const [showTaskModal, setShowTaskModal] = useState(false);
   const [newTaskItem, setNewTaskItem] = useState({
-    day: 'Monday',
     name: '',
     description: ''
   });
@@ -60,11 +72,11 @@ function ActivityTracking() {
       setDailyActivity(JSON.parse(savedDaily));
     }
 
-    // Load tasks
-    const tasksKey = getUserKey(userId, 'tasks');
+    // Load tasks - NEW STRUCTURE
+    const tasksKey = getUserKey(userId, 'tasksByDay');
     const savedTasks = localStorage.getItem(tasksKey);
     if (savedTasks) {
-      setTaskItems(JSON.parse(savedTasks));
+      setTasksByDay(JSON.parse(savedTasks));
     }
   };
 
@@ -80,9 +92,9 @@ function ActivityTracking() {
     localStorage.setItem(dailyKey, JSON.stringify(activity));
   };
 
-  // Save tasks to localStorage
-  const saveTasks = (userId, tasks) => {
-    const tasksKey = getUserKey(userId, 'tasks');
+  // Save tasks to localStorage - NEW STRUCTURE
+  const saveTasksByDay = (userId, tasks) => {
+    const tasksKey = getUserKey(userId, 'tasksByDay');
     localStorage.setItem(tasksKey, JSON.stringify(tasks));
   };
 
@@ -104,59 +116,60 @@ function ActivityTracking() {
   // Timer effect for daily activity
   useEffect(() => {
     if (dailyActivity.isActive && dailyActivity.startTime && dailyActivity.endTime) {
-      // Clear any existing interval
       if (timerInterval) {
         clearInterval(timerInterval);
       }
 
       const updateTimer = () => {
         const now = new Date();
-        const currentTime = `${now.getHours().toString().padStart(2, '0')}:${now.getMinutes().toString().padStart(2, '0')}`;
         
-        // Parse times
         const [startHour, startMin] = dailyActivity.startTime.split(':').map(Number);
         const [endHour, endMin] = dailyActivity.endTime.split(':').map(Number);
-        const [currentHour, currentMin] = currentTime.split(':').map(Number);
         
-        // Convert to minutes for easier calculation
-        const startTotal = startHour * 60 + startMin;
-        const endTotal = endHour * 60 + endMin;
-        const currentTotal = currentHour * 60 + currentMin;
+        const todayStart = new Date();
+        todayStart.setHours(startHour, startMin, 0, 0);
         
-        if (currentTotal < startTotal) {
-          // Activity hasn't started yet
-          const minsUntilStart = startTotal - currentTotal;
-          const hours = Math.floor(minsUntilStart / 60);
-          const mins = minsUntilStart % 60;
-          setTimeRemaining(`${hours}h ${mins}m until start`);
+        const todayEnd = new Date();
+        todayEnd.setHours(endHour, endMin, 0, 0);
+        
+        if (endHour < startHour || (endHour === startHour && endMin < startMin)) {
+          todayEnd.setDate(todayEnd.getDate() + 1);
+        }
+        
+        if (now < todayStart) {
+          const diffMs = todayStart - now;
+          const hours = Math.floor(diffMs / (1000 * 60 * 60));
+          const mins = Math.floor((diffMs % (1000 * 60 * 60)) / (1000 * 60));
+          const secs = Math.floor((diffMs % (1000 * 60)) / 1000);
+          
+          setTimeRemaining(`${hours.toString().padStart(2, '0')}:${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')} until start`);
           setTimerStatus('waiting');
-        } else if (currentTotal >= startTotal && currentTotal < endTotal) {
-          // Activity is in progress
-          const minsRemaining = endTotal - currentTotal;
-          const hours = Math.floor(minsRemaining / 60);
-          const mins = minsRemaining % 60;
-          setTimeRemaining(`${hours}h ${mins}m remaining`);
+        } 
+        else if (now >= todayStart && now < todayEnd) {
+          const diffMs = todayEnd - now;
+          const hours = Math.floor(diffMs / (1000 * 60 * 60));
+          const mins = Math.floor((diffMs % (1000 * 60 * 60)) / (1000 * 60));
+          const secs = Math.floor((diffMs % (1000 * 60)) / 1000);
+          
+          setTimeRemaining(`${hours.toString().padStart(2, '0')}:${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')} remaining`);
           setTimerStatus('active');
-        } else {
-          // Activity has ended - reset to next day's start time
-          const nextStartTime = new Date();
-          nextStartTime.setDate(nextStartTime.getDate() + 1);
-          nextStartTime.setHours(startHour, startMin, 0);
+        } 
+        else {
+          const tomorrowStart = new Date(todayStart);
+          tomorrowStart.setDate(tomorrowStart.getDate() + 1);
           
-          const timeUntilNext = nextStartTime - now;
-          const hoursUntilNext = Math.floor(timeUntilNext / (1000 * 60 * 60));
-          const minsUntilNext = Math.floor((timeUntilNext % (1000 * 60 * 60)) / (1000 * 60));
+          const diffMs = tomorrowStart - now;
+          const hours = Math.floor(diffMs / (1000 * 60 * 60));
+          const mins = Math.floor((diffMs % (1000 * 60 * 60)) / (1000 * 60));
+          const secs = Math.floor((diffMs % (1000 * 60)) / 1000);
           
-          setTimeRemaining(`${hoursUntilNext}h ${minsUntilNext}m until next`);
+          setTimeRemaining(`${hours.toString().padStart(2, '0')}:${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')} until next`);
           setTimerStatus('completed');
         }
       };
 
-      // Update immediately
       updateTimer();
-      
-      // Update every minute
-      const interval = setInterval(updateTimer, 60000);
+      const interval = setInterval(updateTimer, 1000);
       setTimerInterval(interval);
 
       return () => {
@@ -164,6 +177,13 @@ function ActivityTracking() {
           clearInterval(interval);
         }
       };
+    } else {
+      if (timerInterval) {
+        clearInterval(timerInterval);
+        setTimerInterval(null);
+      }
+      setTimeRemaining('');
+      setTimerStatus('inactive');
     }
   }, [dailyActivity.isActive, dailyActivity.startTime, dailyActivity.endTime]);
 
@@ -205,22 +225,76 @@ function ActivityTracking() {
     saveTodos(user.uid, updatedTodos);
   };
 
-  // Task functions
-  const toggleTaskComplete = async (id) => {
-    if (!user) return;
-    const updatedTasks = taskItems.map(item => 
-      item.id === id ? { ...item, completed: !item.completed } : item
-    );
-    setTaskItems(updatedTasks);
-    saveTasks(user.uid, updatedTasks);
+  // Task functions - NEW
+  const navigateDay = (direction) => {
+    const currentIndex = daysOfWeek.indexOf(currentDay);
+    if (direction === 'next') {
+      const nextIndex = (currentIndex + 1) % 7;
+      setCurrentDay(daysOfWeek[nextIndex]);
+    } else {
+      const prevIndex = (currentIndex - 1 + 7) % 7;
+      setCurrentDay(daysOfWeek[prevIndex]);
+    }
   };
 
-  const removeTask = async (id, e) => {
+  const toggleTaskComplete = async (day, taskId) => {
+    if (!user) return;
+    const updatedTasks = { ...tasksByDay };
+    const taskIndex = updatedTasks[day].findIndex(task => task.id === taskId);
+    if (taskIndex !== -1) {
+      updatedTasks[day][taskIndex].completed = !updatedTasks[day][taskIndex].completed;
+      setTasksByDay(updatedTasks);
+      saveTasksByDay(user.uid, updatedTasks);
+    }
+  };
+
+  const removeTask = async (day, taskId, e) => {
     e.stopPropagation();
     if (!user) return;
-    const updatedTasks = taskItems.filter(item => item.id !== id);
-    setTaskItems(updatedTasks);
-    saveTasks(user.uid, updatedTasks);
+    const updatedTasks = { ...tasksByDay };
+    updatedTasks[day] = updatedTasks[day].filter(task => task.id !== taskId);
+    setTasksByDay(updatedTasks);
+    saveTasksByDay(user.uid, updatedTasks);
+  };
+
+  // Task Modal Functions
+  const openTaskModal = () => {
+    setShowTaskModal(true);
+    setNewTaskItem({
+      name: '',
+      description: ''
+    });
+  };
+
+  const closeTaskModal = () => {
+    setShowTaskModal(false);
+  };
+
+  const handleTaskInputChange = (e) => {
+    const { name, value } = e.target;
+    setNewTaskItem(prev => ({
+      ...prev,
+      [name]: value
+    }));
+  };
+
+  const handleAddTaskItem = async () => {
+    if (!user) return;
+    if (newTaskItem.name.trim() && newTaskItem.description.trim()) {
+      const task = {
+        id: Date.now(),
+        name: newTaskItem.name.trim(),
+        description: newTaskItem.description.trim(),
+        completed: false
+      };
+      
+      const updatedTasks = { ...tasksByDay };
+      updatedTasks[currentDay] = [...updatedTasks[currentDay], task];
+      
+      setTasksByDay(updatedTasks);
+      saveTasksByDay(user.uid, updatedTasks);
+      setShowTaskModal(false);
+    }
   };
 
   // Todo Modal Functions
@@ -298,46 +372,6 @@ function ActivityTracking() {
     }
   };
 
-  // Task Modal Functions
-  const openTaskModal = () => {
-    setShowTaskModal(true);
-    setNewTaskItem({
-      day: 'Monday',
-      name: '',
-      description: ''
-    });
-  };
-
-  const closeTaskModal = () => {
-    setShowTaskModal(false);
-  };
-
-  const handleTaskInputChange = (e) => {
-    const { name, value } = e.target;
-    setNewTaskItem(prev => ({
-      ...prev,
-      [name]: value
-    }));
-  };
-
-  const handleAddTaskItem = async () => {
-    if (!user) return;
-    if (newTaskItem.name.trim() && newTaskItem.description.trim()) {
-      const task = {
-        id: Date.now(),
-        day: newTaskItem.day,
-        name: newTaskItem.name.trim(),
-        description: newTaskItem.description.trim(),
-        completed: false
-      };
-      
-      const updatedTasks = [...taskItems, task];
-      setTaskItems(updatedTasks);
-      saveTasks(user.uid, updatedTasks);
-      setShowTaskModal(false);
-    }
-  };
-
   const handleKeyPress = (e) => {
     if (e.key === 'Enter') {
       handleAddTask();
@@ -348,13 +382,13 @@ function ActivityTracking() {
   const getTimerColor = () => {
     switch(timerStatus) {
       case 'active':
-        return '#22D3EE'; // Cyan - when active
+        return 'var(--accent-color)';
       case 'completed':
-        return '#8895aa'; // Gray - when completed/reset
+        return 'var(--text-secondary)';
       case 'waiting':
-        return '#ffc107'; // Yellow - waiting to start
+        return 'var(--warning-color)';
       default:
-        return '#8895aa';
+        return 'var(--text-secondary)';
     }
   };
 
@@ -472,7 +506,7 @@ function ActivityTracking() {
                   </div>
                   {timerStatus === 'active' && (
                     <div className="activity-status active-status">
-                       Activity in progress - Start now!
+                       Activity in progress
                     </div>
                   )}
                   {timerStatus === 'waiting' && (
@@ -482,24 +516,31 @@ function ActivityTracking() {
                   )}
                   {timerStatus === 'completed' && (
                     <div className="activity-status completed-status">
-                       Reset for tomorrow
+                       Resets tomorrow at {dailyActivity.startTime}
                     </div>
                   )}
                 </div>
               )}
             </div>
 
-            {/* Tasks Section */}
-            <div className="activity-card tasks-card" onClick={openTaskModal}>
-              <h2 className="card-title">TASKS</h2>
-              {taskItems.length === 0 ? (
-                <div className="empty-tasks">
-                  <p className="empty-message">Click to add tasks</p>
-                  <span className="add-icon">+</span>
-                </div>
-              ) : (
-                <div className="tasks-list">
-                  {taskItems.map(item => (
+            {/* Tasks Section - REDESIGNED */}
+            <div className="activity-card tasks-card">
+              <div className="tasks-header">
+                <h2 className="card-title">TASKS</h2>
+                <button className="add-task-btn" onClick={openTaskModal}>+</button>
+              </div>
+              
+              {/* Day Navigator */}
+              <div className="day-navigator">
+                <button className="nav-arrow" onClick={() => navigateDay('prev')}>←</button>
+                <h3 className="current-day">{currentDay}</h3>
+                <button className="nav-arrow" onClick={() => navigateDay('next')}>→</button>
+              </div>
+
+              {/* Tasks for Current Day */}
+              <div className="day-tasks">
+                {tasksByDay[currentDay] && tasksByDay[currentDay].length > 0 ? (
+                  tasksByDay[currentDay].map(item => (
                     <div 
                       key={item.id} 
                       className={`task-item ${item.completed ? 'completed' : ''}`}
@@ -507,22 +548,24 @@ function ActivityTracking() {
                     >
                       <span className="checkbox" onClick={(e) => {
                         e.stopPropagation();
-                        toggleTaskComplete(item.id);
+                        toggleTaskComplete(currentDay, item.id);
                       }}>
                         {item.completed ? '✓' : '○'}
                       </span>
                       <div className="task-content">
-                        <div className="task-header">
-                          <span className="task-day">{item.day}</span>
-                          <span className="task-name">{item.name}</span>
-                        </div>
+                        <span className="task-name">{item.name}</span>
                         <p className="task-description">{item.description}</p>
                       </div>
-                      <span className="remove-task" onClick={(e) => removeTask(item.id, e)}>✕</span>
+                      <span className="remove-task" onClick={(e) => removeTask(currentDay, item.id, e)}>✕</span>
                     </div>
-                  ))}
-                </div>
-              )}
+                  ))
+                ) : (
+                  <div className="empty-day-tasks" onClick={openTaskModal}>
+                    <p>No tasks for {currentDay}</p>
+                    <span className="add-icon-small">+</span>
+                  </div>
+                )}
+              </div>
             </div>
           </div>
         </div>
@@ -636,27 +679,13 @@ function ActivityTracking() {
         </div>
       )}
 
-      {/* Task Modal */}
+      {/* Task Modal - UPDATED */}
       {showTaskModal && (
         <div className="modal-overlay" onClick={closeTaskModal}>
           <div className="modal-content" onClick={(e) => e.stopPropagation()}>
-            <h3 className="modal-title">add task |</h3>
+            <h3 className="modal-title">add task for {currentDay} |</h3>
             
             <div className="modal-body">
-              <div className="task-input-group">
-                <label className="task-label">Day</label>
-                <select
-                  name="day"
-                  className="task-select"
-                  value={newTaskItem.day}
-                  onChange={handleTaskInputChange}
-                >
-                  {daysOfWeek.map(day => (
-                    <option key={day} value={day}>{day}</option>
-                  ))}
-                </select>
-              </div>
-
               <div className="task-input-group">
                 <label className="task-label">Task</label>
                 <input
@@ -666,6 +695,7 @@ function ActivityTracking() {
                   placeholder="Enter task name..."
                   value={newTaskItem.name}
                   onChange={handleTaskInputChange}
+                  autoFocus
                 />
               </div>
 

@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { auth, signOut } from '../firebase';
+import SettingsModal from './SettingsModal';
 import './Dashboard.css';
 
 function Dashboard() {
@@ -9,6 +10,7 @@ function Dashboard() {
   const [activeTab, setActiveTab] = useState('home');
   const [immediateFocus, setImmediateFocus] = useState([]);
   const [showBudgetModal, setShowBudgetModal] = useState(false);
+  const [showSettings, setShowSettings] = useState(false);
   const [newBudget, setNewBudget] = useState('');
   const [streakData, setStreakData] = useState({
     currentStreak: 0,
@@ -48,9 +50,9 @@ function Dashboard() {
     loadBudgetFromStorage(userId);
     loadFinancialData(userId);
     loadImmediateFocus(userId);
+    updateSystemAlerts(userId);
     calculateStreak(userId);
     calculateTaskCompletion(userId);
-    updateSystemAlerts(userId);
   };
 
   // Calculate task completion from todos
@@ -88,7 +90,7 @@ function Dashboard() {
   // Calculate streak from completed tasks
   const calculateStreak = (userId) => {
     try {
-      const tasksKey = getUserKey(userId, 'tasks');
+      const tasksKey = getUserKey(userId, 'tasksByDay');
       const todosKey = getUserKey(userId, 'todos');
       const savedTasks = localStorage.getItem(tasksKey);
       const savedTodos = localStorage.getItem(todosKey);
@@ -98,28 +100,20 @@ function Dashboard() {
       let streak = 0;
       let longestStreak = 0;
 
-      // Calculate from tasks
       if (savedTasks) {
-        const tasks = JSON.parse(savedTasks);
-        const today = new Date().toDateString();
-        
-        tasks.forEach(task => {
-          if (task.completed) {
-            totalCompleted++;
-            
-            // Check if completed today (you'd need to add completion date to tasks)
-            // For now, we'll use a simplified approach
-            if (task.completedToday) {
-              completedToday++;
+        const tasksByDay = JSON.parse(savedTasks);
+        // Count completed tasks across all days
+        Object.values(tasksByDay).forEach(dayTasks => {
+          dayTasks.forEach(task => {
+            if (task.completed) {
+              totalCompleted++;
             }
-          }
+          });
         });
-
         streak = Math.floor(totalCompleted / 3);
         longestStreak = Math.max(longestStreak, streak);
       }
 
-      // Also count from todos
       if (savedTodos) {
         const todos = JSON.parse(savedTodos);
         todos.forEach(todo => {
@@ -153,14 +147,6 @@ function Dashboard() {
           monthlyBudget: parseFloat(savedBudget)
         }
       }));
-    } else {
-      setDashboardData(prev => ({
-        ...prev,
-        finance: {
-          ...prev.finance,
-          monthlyBudget: 0
-        }
-      }));
     }
   };
 
@@ -187,117 +173,69 @@ function Dashboard() {
               ...prev.finance,
               spent: monthlySpent,
               percentageUsed: Math.min(percentageUsed, 100),
-              remaining: remaining > 0 ? remaining : 0,
+              remaining: remaining,
               isOverBudget
             }
           };
         });
-      } else {
-        // Reset finance data if no financial data exists
-        setDashboardData(prev => ({
-          ...prev,
-          finance: {
-            ...prev.finance,
-            spent: 0,
-            percentageUsed: 0,
-            remaining: prev.finance.monthlyBudget || 0,
-            isOverBudget: false
-          }
-        }));
       }
     } catch (error) {
       console.error('Error loading financial data:', error);
     }
   };
 
-  // Load data from localStorage (shared with Activity page)
+  // Load data from localStorage for Immediate Focus (TASKS ONLY)
   const loadImmediateFocus = (userId) => {
     try {
-      const dailyKey = getUserKey(userId, 'dailyActivity');
-      const tasksKey = getUserKey(userId, 'tasks');
-      const todosKey = getUserKey(userId, 'todos');
-
-      const savedDailyActivity = localStorage.getItem(dailyKey);
+      const tasksKey = getUserKey(userId, 'tasksByDay');
       const savedTasks = localStorage.getItem(tasksKey);
-      const savedTodos = localStorage.getItem(todosKey);
 
       const focusItems = [];
 
-      // Check daily activity
-      if (savedDailyActivity) {
-        const dailyActivity = JSON.parse(savedDailyActivity);
-        if (dailyActivity.isActive && dailyActivity.name) {
-          const now = new Date();
-          const currentTime = `${now.getHours().toString().padStart(2, '0')}:${now.getMinutes().toString().padStart(2, '0')}`;
-          
-          if (currentTime >= dailyActivity.startTime && currentTime <= dailyActivity.endTime) {
-            focusItems.push({
-              type: 'activity',
-              icon: '',
-              title: dailyActivity.name,
-              description: `${dailyActivity.startTime} - ${dailyActivity.endTime}`,
-              deadline: 'In Progress',
-              priority: 'high'
-            });
-          } else if (currentTime < dailyActivity.startTime) {
-            const [startHour, startMin] = dailyActivity.startTime.split(':').map(Number);
-            const startTime = new Date();
-            startTime.setHours(startHour, startMin, 0);
-            const timeUntilStart = Math.round((startTime - now) / (1000 * 60 * 60) * 10) / 10;
-            
-            focusItems.push({
-              type: 'activity',
-              icon: '',
-              title: dailyActivity.name,
-              description: `Starts at ${dailyActivity.startTime}`,
-              deadline: `${timeUntilStart}h remaining`,
-              priority: 'medium'
-            });
-          }
-        }
-      }
-
-      // Check tasks for today
+      // Check tasks for today - ONLY for Immediate Focus
       if (savedTasks) {
-        const tasks = JSON.parse(savedTasks);
+        const tasksByDay = JSON.parse(savedTasks);
         const today = new Date();
         const days = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
         const todayName = days[today.getDay()];
         
-        const todayTasks = tasks.filter(task => 
-          task.day === todayName && !task.completed
-        );
+        // Get today's tasks that aren't completed
+        const todayTasks = tasksByDay[todayName]?.filter(task => !task.completed) || [];
 
-        todayTasks.forEach(task => {
+        if (todayTasks.length > 0) {
+          // Add a single reminder for today's tasks
           focusItems.push({
-            type: 'task',
-            icon: '',
-            title: task.name,
-            description: task.description,
-            deadline: 'Due Today',
-            priority: 'high',
-            taskId: task.id
+            type: 'task-reminder',
+            title: `Task Reminder`,
+            description: `You have ${todayTasks.length} task${todayTasks.length > 1 ? 's' : ''} scheduled for today`,
+            priority: todayTasks.length > 2 ? 'high' : 'medium'
           });
-        });
+        }
 
-        const upcomingTasks = tasks.filter(task => {
-          const taskDayIndex = days.indexOf(task.day);
-          const todayIndex = today.getDay();
-          const dayDiff = (taskDayIndex - todayIndex + 7) % 7;
-          return dayDiff > 0 && dayDiff <= 2 && !task.completed;
-        });
+        // Check for upcoming tasks (next 2 days)
+        const upcomingTasks = [];
+        for (let i = 1; i <= 2; i++) {
+          const nextDate = new Date();
+          nextDate.setDate(nextDate.getDate() + i);
+          const nextDayName = days[nextDate.getDay()];
+          const nextDayTasks = tasksByDay[nextDayName]?.filter(task => !task.completed) || [];
+          if (nextDayTasks.length > 0) {
+            upcomingTasks.push({
+              day: nextDayName,
+              count: nextDayTasks.length
+            });
+          }
+        }
 
-        upcomingTasks.forEach(task => {
+        if (upcomingTasks.length > 0) {
           focusItems.push({
-            type: 'task',
-            icon: '',
-            title: task.name,
-            description: task.description,
-            deadline: `Due ${task.day}`,
-            priority: 'medium',
-            taskId: task.id
+            type: 'upcoming',
+            title: 'Upcoming Tasks',
+            description: upcomingTasks.map(t => `${t.count} on ${t.day}`).join(', '),
+            deadline: 'Soon',
+            priority: 'low'
           });
-        });
+        }
       }
 
       // Sort focus items by priority
@@ -306,7 +244,7 @@ function Dashboard() {
         return priorityOrder[a.priority] - priorityOrder[b.priority];
       });
 
-      setImmediateFocus(sortedFocus.slice(0, 3));
+      setImmediateFocus(sortedFocus.slice(0, 3)); // Show top 3 items
       
     } catch (error) {
       console.error('Error loading focus items:', error);
@@ -316,46 +254,60 @@ function Dashboard() {
   const updateSystemAlerts = (userId) => {
     const alerts = [];
     
-    // Check for overdue tasks
-    const tasksKey = getUserKey(userId, 'tasks');
-    const savedTasks = localStorage.getItem(tasksKey);
-    if (savedTasks) {
-      const tasks = JSON.parse(savedTasks);
-      const today = new Date();
-      const days = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
-      
-      const overdueTasks = tasks.filter(task => {
-        const taskDayIndex = days.indexOf(task.day);
-        const todayIndex = today.getDay();
-        const dayDiff = (taskDayIndex - todayIndex + 7) % 7;
-        return dayDiff < 0 && !task.completed;
-      });
-
-      if (overdueTasks.length > 0) {
-        alerts.push({ type: 'error', message: `${overdueTasks.length} overdue task${overdueTasks.length > 1 ? 's' : ''}` });
-      }
-    }
-
-    // Check for incomplete todos
+    // Check for pending tasks
     if (taskData.pendingTasks > 0) {
       alerts.push({ type: 'warning', message: `${taskData.pendingTasks} pending task${taskData.pendingTasks > 1 ? 's' : ''}` });
     }
 
     // Check for budget alerts
     if (dashboardData.finance.isOverBudget) {
-      alerts.push({ type: 'error', message: 'Over budget! Review your spending' });
+      const overAmount = Math.abs(dashboardData.finance.remaining);
+      alerts.push({ type: 'error', message: `Over budget by R${overAmount.toLocaleString()}!` });
     } else if (dashboardData.finance.percentageUsed > 80) {
       alerts.push({ type: 'warning', message: `${Math.round(dashboardData.finance.percentageUsed)}% of budget used` });
     }
 
-    // Check for savings
-    const financeKey = getUserKey(userId, 'financialData');
-    const savedFinance = localStorage.getItem(financeKey);
-    if (savedFinance) {
-      const finance = JSON.parse(savedFinance);
-      if (finance.savings?.items?.length === 0) {
-        alerts.push({ type: 'warning', message: 'No savings recorded this month' });
+    // Check for active daily activity - ONLY for System Alerts
+    try {
+      const dailyKey = getUserKey(userId, 'dailyActivity');
+      const savedDailyActivity = localStorage.getItem(dailyKey);
+      
+      if (savedDailyActivity) {
+        const dailyActivity = JSON.parse(savedDailyActivity);
+        if (dailyActivity.isActive && dailyActivity.name) {
+          const now = new Date();
+          const [startHour, startMin] = dailyActivity.startTime.split(':').map(Number);
+          const [endHour, endMin] = dailyActivity.endTime.split(':').map(Number);
+          
+          const todayStart = new Date();
+          todayStart.setHours(startHour, startMin, 0, 0);
+          
+          const todayEnd = new Date();
+          todayEnd.setHours(endHour, endMin, 0, 0);
+          
+          if (endHour < startHour || (endHour === startHour && endMin < startMin)) {
+            todayEnd.setDate(todayEnd.getDate() + 1);
+          }
+          
+          if (now >= todayStart && now < todayEnd) {
+            // Activity is in progress
+            alerts.push({ 
+              type: 'success', 
+              message: ` ${dailyActivity.name} is in progress!` 
+            });
+          } else if (now < todayStart) {
+            const diffMs = todayStart - now;
+            const hours = Math.floor(diffMs / (1000 * 60 * 60));
+            const mins = Math.floor((diffMs % (1000 * 60 * 60)) / (1000 * 60));
+            alerts.push({ 
+              type: 'info', 
+              message: ` ${dailyActivity.name} starts in ${hours}h ${mins}m` 
+            });
+          }
+        }
       }
+    } catch (error) {
+      console.error('Error checking daily activity:', error);
     }
 
     // Add streak alert
@@ -365,7 +317,7 @@ function Dashboard() {
 
     setDashboardData(prev => ({
       ...prev,
-      systemAlerts: alerts.slice(0, 3)
+      systemAlerts: alerts.slice(0, 3) // Show top 3 alerts
     }));
   };
 
@@ -373,7 +325,6 @@ function Dashboard() {
     const unsubscribe = auth.onAuthStateChanged((user) => {
       if (user) {
         setUser(user);
-        // Load all data immediately when user logs in
         loadAllUserData(user.uid);
       } else {
         navigate('/login');
@@ -384,14 +335,11 @@ function Dashboard() {
     return () => unsubscribe();
   }, [navigate]);
 
-  // Reload data when the component mounts or when the page gains focus
   useEffect(() => {
     if (!user) return;
 
-    // Load data when component mounts
     loadAllUserData(user.uid);
 
-    // Load data when the page gains focus (user returns to the tab)
     const handleFocus = () => {
       loadAllUserData(user.uid);
     };
@@ -441,7 +389,6 @@ function Dashboard() {
     if (newBudget && !isNaN(newBudget) && parseFloat(newBudget) > 0 && user) {
       const budgetAmount = parseFloat(newBudget);
       
-      // Save to user-specific localStorage
       const budgetKey = getUserKey(user.uid, 'monthlyBudget');
       localStorage.setItem(budgetKey, budgetAmount.toString());
       
@@ -456,7 +403,7 @@ function Dashboard() {
             ...prev.finance,
             monthlyBudget: budgetAmount,
             percentageUsed: Math.min(percentageUsed, 100),
-            remaining: remaining > 0 ? remaining : 0,
+            remaining: remaining,
             isOverBudget
           }
         };
@@ -466,13 +413,12 @@ function Dashboard() {
     }
   };
 
-  // Refresh data every minute
   useEffect(() => {
     if (!user) return;
     
     const interval = setInterval(() => {
       loadAllUserData(user.uid);
-    }, 60000);
+    }, 30000); // Check every 30 seconds for more responsive alerts
     
     return () => clearInterval(interval);
   }, [user]);
@@ -492,15 +438,16 @@ function Dashboard() {
     const { isOverBudget, percentageUsed, remaining, monthlyBudget } = dashboardData.finance;
     
     if (monthlyBudget === 0) {
-      return { color: '#8895aa', message: 'Set monthly budget' };
+      return { color: 'var(--text-secondary)', message: 'Set monthly budget' };
     }
     if (isOverBudget) {
-      return { color: '#ff5757', message: `Over by R${Math.abs(remaining)}` };
+      const overAmount = Math.abs(remaining);
+      return { color: 'var(--danger-color)', message: `Over by R${overAmount.toLocaleString()}` };
     }
     if (percentageUsed > 80) {
-      return { color: '#ffc107', message: `${Math.round(percentageUsed)}% used` };
+      return { color: 'var(--warning-color)', message: `${Math.round(percentageUsed)}% used` };
     }
-    return { color: '#4bb543', message: `R${remaining} remaining` };
+    return { color: 'var(--success-color)', message: `R${remaining.toLocaleString()} remaining` };
   };
 
   const budgetStatus = getBudgetStatus();
@@ -549,18 +496,36 @@ function Dashboard() {
       {/* Main Content */}
       <div className="dashboard-main-content">
         <div className="content-wrapper">
-          {/* Welcome Header */}
+          {/* Welcome Header with Settings */}
           <div className="welcome-header">
-            <h1 className="welcome-title">
-              WELCOME BACK, {firstName.toUpperCase()}
-            </h1>
-            <p className="welcome-subtitle">Here's your progress overview</p>
+            <div className="welcome-header-top">
+              <div>
+                <h1 className="welcome-title">
+                  WELCOME BACK, {firstName.toUpperCase()}
+                </h1>
+                <p className="welcome-subtitle">Here's your progress overview</p>
+              </div>
+              <button 
+                className="settings-btn"
+                onClick={() => setShowSettings(true)}
+                title="Settings"
+              >
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                  <circle cx="12" cy="12" r="8" stroke="currentColor" strokeWidth="2" fill="none"/>
+                  <circle cx="12" cy="12" r="2" fill="currentColor"/>
+                  <line x1="4" y1="4" x2="8" y2="8" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/>
+                  <line x1="20" y1="4" x2="16" y2="8" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/>
+                  <line x1="4" y1="20" x2="8" y2="16" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/>
+                  <line x1="20" y1="20" x2="16" y2="16" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/>
+                </svg>
+              </button>
+            </div>
           </div>
 
           {/* Stats Cards Grid */}
           <div className="stats-grid">
-            {/* Work Card */}
-            <div className="stat-card work-card">
+            {/* Tasks Card */}
+            <div className="stat-card">
               <h3 className="stat-title">Tasks</h3>
               {taskData.totalTasks > 0 ? (
                 <>
@@ -570,11 +535,11 @@ function Dashboard() {
                   </div>
                   <div className="task-breakdown">
                     <div className="task-stat">
-                      <span className="task-stat-label">Completed</span>
+                      <span className="task-stat-label">COMPLETED</span>
                       <span className="task-stat-value complete">{taskData.completedTasks}</span>
                     </div>
                     <div className="task-stat">
-                      <span className="task-stat-label">Pending</span>
+                      <span className="task-stat-label">PENDING</span>
                       <span className="task-stat-value pending">{taskData.pendingTasks}</span>
                     </div>
                   </div>
@@ -585,7 +550,7 @@ function Dashboard() {
                   </div>
                   <div className="progress-bar">
                     <div 
-                      className="progress-fill work-progress" 
+                      className="progress-fill" 
                       style={{ width: `${taskData.completionPercentage}%` }}
                     ></div>
                   </div>
@@ -607,7 +572,7 @@ function Dashboard() {
                     <span className="stat-value" style={{ color: budgetStatus.color }}>
                       {Math.round(dashboardData.finance.percentageUsed)}%
                     </span>
-                    <span className="stat-label">of R{dashboardData.finance.monthlyBudget}</span>
+                    <span className="stat-label">of R{dashboardData.finance.monthlyBudget.toLocaleString()}</span>
                   </div>
                   <div className="stat-details">
                     <span className="stat-message">
@@ -621,14 +586,14 @@ function Dashboard() {
                   </div>
                   <div className="progress-bar">
                     <div 
-                      className="progress-fill finance-progress" 
+                      className="progress-fill" 
                       style={{ 
                         width: `${Math.min(dashboardData.finance.percentageUsed, 100)}%`,
                         background: dashboardData.finance.isOverBudget 
-                          ? 'linear-gradient(90deg, #ff5757, #ff0000)'
+                          ? 'linear-gradient(90deg, var(--danger-color), #ff0000)'
                           : dashboardData.finance.percentageUsed > 80
-                          ? 'linear-gradient(90deg, #ffc107, #ff9800)'
-                          : 'linear-gradient(90deg, #22D3EE, #10b981)'
+                          ? 'linear-gradient(90deg, var(--warning-color), #ff9800)'
+                          : 'linear-gradient(90deg, var(--accent-color), #10b981)'
                       }}
                     ></div>
                   </div>
@@ -641,9 +606,9 @@ function Dashboard() {
               )}
             </div>
 
-            {/* Streak Card */}
-            <div className="stat-card personal-card">
-              <h3 className="stat-title">Streak</h3>
+            {/* Personal Card */}
+            <div className="stat-card">
+              <h3 className="stat-title">Personal</h3>
               <div className="streak-container">
                 <div className="streak-main">
                   <span className="streak-value">{streakData.currentStreak}</span>
@@ -651,15 +616,15 @@ function Dashboard() {
                 </div>
                 <div className="streak-details">
                   <div className="streak-stat">
-                    <span className="streak-stat-label">Today</span>
+                    <span className="streak-stat-label">TODAY</span>
                     <span className="streak-stat-value">{streakData.todayCompleted}</span>
                   </div>
                   <div className="streak-stat">
-                    <span className="streak-stat-label">Longest</span>
+                    <span className="streak-stat-label">LONGEST</span>
                     <span className="streak-stat-value">{streakData.longestStreak}</span>
                   </div>
                   <div className="streak-stat">
-                    <span className="streak-stat-label">Total</span>
+                    <span className="streak-stat-label">TOTAL</span>
                     <span className="streak-stat-value">{streakData.totalCompleted}</span>
                   </div>
                 </div>
@@ -676,7 +641,7 @@ function Dashboard() {
 
           {/* Bottom Section */}
           <div className="dashboard-bottom">
-            {/* Immediate Focus Card */}
+            {/* Immediate Focus Card - TASKS ONLY */}
             <div className="focus-card">
               <h3 className="focus-title">Immediate Focus</h3>
               <div className="focus-content">
@@ -693,14 +658,14 @@ function Dashboard() {
                   ))
                 ) : (
                   <div className="focus-empty">
-                    <p>No immediate focus items</p>
-                    <p className="focus-subtext">Add activities or tasks to see them here</p>
+                    <p>No tasks scheduled</p>
+                    <p className="focus-subtext">Add tasks in Activity Tracking</p>
                   </div>
                 )}
               </div>
             </div>
 
-            {/* System Alerts Card */}
+            {/* System Alerts Card - DAILY ACTIVITY ONLY + other alerts */}
             <div className="alerts-card">
               <h3 className="alerts-title">System Alerts</h3>
               <div className="alerts-list">
@@ -711,6 +676,7 @@ function Dashboard() {
                         {alert.type === 'error' && '🔴'}
                         {alert.type === 'warning' && '⚪'}
                         {alert.type === 'success' && '🟢'}
+                        {alert.type === 'info' && '🔵'}
                       </span>
                       <span className="alert-message">{alert.message}</span>
                     </div>
@@ -771,6 +737,13 @@ function Dashboard() {
           </div>
         </div>
       )}
+
+      {/* Settings Modal */}
+      <SettingsModal 
+        isOpen={showSettings}
+        onClose={() => setShowSettings(false)}
+        user={user}
+      />
     </div>
   );
 }

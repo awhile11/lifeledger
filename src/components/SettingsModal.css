@@ -1,0 +1,311 @@
+/* Settings Modal Styles */
+.settings-modal-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.7);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 2000;
+  backdrop-filter: blur(5px);
+}
+
+.settings-modal-content {
+  background: var(--bg-primary);
+  border: 2px solid var(--accent-color);
+  border-radius: 20px;
+  width: 90%;
+  max-width: 500px;
+  max-height: 80vh;
+  overflow-y: auto;
+  box-shadow: 0 20px 40px rgba(0, 0, 0, 0.3);
+  animation: modalSlideIn 0.3s ease;
+}
+
+.settings-modal-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 20px 25px;
+  border-bottom: 1px solid var(--border-color);
+}
+
+.settings-modal-header h2 {
+  color: var(--text-primary);
+  margin: 0;
+  font-size: 24px;
+  font-family: 'Audiowide', cursive;
+}
+
+.close-btn {
+  background: none;
+  border: none;
+  color: var(--text-secondary);
+  font-size: 28px;
+  cursor: pointer;
+  padding: 0;
+  width: 40px;
+  height: 40px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  transition: all 0.2s;
+}
+
+.close-btn:hover {
+  background: var(--hover-bg);
+  color: var(--text-primary);
+}
+
+.settings-modal-body {
+  padding: 25px;
+}
+
+.settings-section {
+  margin-bottom: 30px;
+  padding-bottom: 20px;
+  border-bottom: 1px solid var(--border-color);
+}
+
+.settings-section:last-child {
+  border-bottom: none;
+  margin-bottom: 0;
+  padding-bottom: 0;
+}
+
+.settings-section h3 {
+  color: var(--accent-color);
+  margin: 0 0 15px 0;
+  font-size: 18px;
+  font-family: 'Audiowide', cursive;
+}
+
+.form-group {
+  margin-bottom: 15px;
+}
+
+.form-group label {
+  display: block;
+  color: var(--text-secondary);
+  margin-bottom: 5px;
+  font-size: 14px;
+  font-family: 'Audiowide', cursive;
+}
+
+.form-group input {
+  width: 100%;
+  padding: 12px 15px;
+  background: var(--bg-secondary);
+  border: 1px solid var(--border-color);
+  border-radius: 8px;
+  color: var(--text-primary);
+  font-family: 'Audiowide', cursive;
+  font-size: 14px;
+  outline: none;
+  transition: all 0.2s;
+}
+
+.form-group input:focus {
+  border-color: var(--accent-color);
+  box-shadow: 0 0 10px rgba(34, 211, 238, 0.2);
+}
+
+.form-group input.disabled-input {
+  opacity: 0.6;
+  cursor: not-allowed;
+  background: var(--bg-secondary);
+}
+
+.input-note {
+  display: block;
+  color: var(--text-secondary);
+  font-size: 12px;
+  margin-top: 5px;
+  font-style: italic;
+  font-family: 'Audiowide', cursive;
+}
+
+.save-profile-btn {
+  width: 100%;
+  padding: 12px;
+  background: var(--accent-color);
+  color: var(--bg-primary);
+  border: 2px solid var(--accent-color);
+  border-radius: 8px;
+  font-family: 'Audiowide', cursive;
+  font-size: 16px;
+  cursor: pointer;
+  transition: all 0.3s;
+  margin-top: 10px;
+}
+
+.save-profile-btn:hover:not(:disabled) {
+  background: transparent;
+  color: var(--accent-color);
+  transform: translateY(-2px);
+}
+
+.save-profile-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+/* Radio Button Theme Selector */
+.theme-radio-group {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding: 5px 0;
+}
+
+.theme-radio {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 15px;
+  background: var(--bg-secondary);
+  border: 2px solid transparent;
+  border-radius: 12px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.theme-radio:hover {
+  background: var(--hover-bg);
+  transform: translateX(5px);
+}
+
+.theme-radio.selected {
+  border-color: var(--accent-color);
+  background: var(--hover-bg);
+}
+
+.theme-radio input[type="radio"] {
+  position: absolute;
+  opacity: 0;
+  width: 0;
+  height: 0;
+}
+
+.radio-custom {
+  width: 20px;
+  height: 20px;
+  border: 2px solid var(--text-secondary);
+  border-radius: 50%;
+  position: relative;
+  transition: all 0.2s ease;
+}
+
+.theme-radio.selected .radio-custom {
+  border-color: var(--accent-color);
+}
+
+.theme-radio.selected .radio-custom::after {
+  content: '';
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  width: 10px;
+  height: 10px;
+  background: var(--accent-color);
+  border-radius: 50%;
+}
+
+.theme-label {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  color: var(--text-primary);
+  font-size: 16px;
+  font-family: 'Audiowide', cursive;
+}
+
+.theme-icon {
+  font-size: 20px;
+}
+
+/* Danger Button */
+.danger-btn {
+  width: 100%;
+  padding: 12px;
+  background: transparent;
+  color: var(--danger-color);
+  border: 2px solid var(--danger-color);
+  border-radius: 8px;
+  font-family: 'Audiowide', cursive;
+  font-size: 16px;
+  cursor: pointer;
+  transition: all 0.3s;
+  margin-bottom: 10px;
+}
+
+.danger-btn:hover {
+  background: var(--danger-color);
+  color: var(--bg-primary);
+}
+
+.warning-text {
+  display: block;
+  color: var(--text-secondary);
+  font-size: 12px;
+  text-align: center;
+  font-style: italic;
+  font-family: 'Audiowide', cursive;
+}
+
+/* Error and Success Messages */
+.error-message {
+  background: rgba(255, 87, 87, 0.1);
+  border: 1px solid var(--danger-color);
+  color: var(--danger-color);
+  padding: 10px;
+  border-radius: 8px;
+  margin-bottom: 15px;
+  font-size: 14px;
+  text-align: center;
+  font-family: 'Audiowide', cursive;
+}
+
+.success-message {
+  background: rgba(75, 181, 67, 0.1);
+  border: 1px solid var(--success-color);
+  color: var(--success-color);
+  padding: 10px;
+  border-radius: 8px;
+  margin-bottom: 15px;
+  font-size: 14px;
+  text-align: center;
+  font-family: 'Audiowide', cursive;
+}
+
+/* Animation */
+@keyframes modalSlideIn {
+  from {
+    transform: translateY(-30px);
+    opacity: 0;
+  }
+  to {
+    transform: translateY(0);
+    opacity: 1;
+  }
+}
+
+/* Responsive */
+@media (max-width: 480px) {
+  .settings-modal-content {
+    padding: 20px;
+  }
+  
+  .theme-label {
+    font-size: 14px;
+  }
+  
+  .theme-icon {
+    font-size: 18px;
+  }
+}

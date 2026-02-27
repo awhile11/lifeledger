@@ -2,6 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { auth, signOut } from '../firebase';
 import SettingsModal from './SettingsModal';
+import PendingTasksModal from './PendingTasksModal';
 import './Dashboard.css';
 
 function Dashboard() {
@@ -11,6 +12,8 @@ function Dashboard() {
   const [immediateFocus, setImmediateFocus] = useState([]);
   const [showBudgetModal, setShowBudgetModal] = useState(false);
   const [showSettings, setShowSettings] = useState(false);
+  const [showPendingTasksModal, setShowPendingTasksModal] = useState(false);
+  const [pendingTodos, setPendingTodos] = useState([]);
   const [newBudget, setNewBudget] = useState('');
   const [streakData, setStreakData] = useState({
     currentStreak: 0,
@@ -53,6 +56,62 @@ function Dashboard() {
     updateSystemAlerts(userId);
     calculateStreak(userId);
     calculateTaskCompletion(userId);
+  };
+
+  // Load todos for the modal
+  const loadTodos = (userId) => {
+    try {
+      const todosKey = getUserKey(userId, 'todos');
+      const savedTodos = localStorage.getItem(todosKey);
+      if (savedTodos) {
+        const todos = JSON.parse(savedTodos);
+        setPendingTodos(todos);
+      }
+    } catch (error) {
+      console.error('Error loading todos:', error);
+    }
+  };
+
+  // Handle todo completion toggle
+  const handleToggleTodoComplete = async (id) => {
+    if (!user) return;
+    const todosKey = getUserKey(user.uid, 'todos');
+    const savedTodos = localStorage.getItem(todosKey);
+    if (savedTodos) {
+      const todos = JSON.parse(savedTodos);
+      const updatedTodos = todos.map(item => 
+        item.id === id ? { ...item, completed: !item.completed } : item
+      );
+      localStorage.setItem(todosKey, JSON.stringify(updatedTodos));
+      setPendingTodos(updatedTodos);
+      
+      // Update task data to refresh the tasks card
+      calculateTaskCompletion(user.uid);
+    }
+  };
+
+  // Handle todo removal
+  const handleRemoveTodo = async (id) => {
+    if (!user) return;
+    const todosKey = getUserKey(user.uid, 'todos');
+    const savedTodos = localStorage.getItem(todosKey);
+    if (savedTodos) {
+      const todos = JSON.parse(savedTodos);
+      const updatedTodos = todos.filter(item => item.id !== id);
+      localStorage.setItem(todosKey, JSON.stringify(updatedTodos));
+      setPendingTodos(updatedTodos);
+      
+      // Update task data to refresh the tasks card
+      calculateTaskCompletion(user.uid);
+    }
+  };
+
+  // Handle tasks card click
+  const handleTasksCardClick = () => {
+    if (user) {
+      loadTodos(user.uid);
+      setShowPendingTasksModal(true);
+    }
   };
 
   // Calculate task completion from todos
@@ -524,8 +583,8 @@ function Dashboard() {
 
           {/* Stats Cards Grid */}
           <div className="stats-grid">
-            {/* Tasks Card */}
-            <div className="stat-card">
+            {/* Tasks Card - Now Clickable */}
+            <div className="stat-card" onClick={handleTasksCardClick} style={{ cursor: 'pointer' }}>
               <h3 className="stat-title">Tasks</h3>
               {taskData.totalTasks > 0 ? (
                 <>
@@ -743,6 +802,15 @@ function Dashboard() {
         isOpen={showSettings}
         onClose={() => setShowSettings(false)}
         user={user}
+      />
+
+      {/* Pending Tasks Modal */}
+      <PendingTasksModal 
+        isOpen={showPendingTasksModal}
+        onClose={() => setShowPendingTasksModal(false)}
+        todos={pendingTodos}
+        onToggleComplete={handleToggleTodoComplete}
+        onRemove={handleRemoveTodo}
       />
     </div>
   );

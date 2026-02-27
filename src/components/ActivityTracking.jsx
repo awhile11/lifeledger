@@ -26,7 +26,7 @@ function ActivityTracking() {
   const [timerStatus, setTimerStatus] = useState('inactive');
   const [timerInterval, setTimerInterval] = useState(null);
 
-  // Tasks State - NEW STRUCTURE
+  // Tasks State - WITH DATE-SPECIFIC TASKS
   const [tasksByDay, setTasksByDay] = useState({
     Monday: [],
     Tuesday: [],
@@ -36,15 +36,36 @@ function ActivityTracking() {
     Saturday: [],
     Sunday: []
   });
+  
+  // Date-specific reminders/tasks
+  const [dateSpecificTasks, setDateSpecificTasks] = useState([]);
+  
   const [currentDay, setCurrentDay] = useState(() => {
     const days = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
     const today = new Date().getDay();
     return days[today];
   });
+  
+  const [currentDate, setCurrentDate] = useState(() => {
+    const today = new Date();
+    return today.toISOString().split('T')[0]; // YYYY-MM-DD format
+  });
+  
   const [showTaskModal, setShowTaskModal] = useState(false);
+  const [showDateTaskModal, setShowDateTaskModal] = useState(false);
   const [newTaskItem, setNewTaskItem] = useState({
     name: '',
-    description: ''
+    description: '',
+    priority: 'medium',
+    type: 'weekly' // 'weekly' or 'date-specific'
+  });
+  
+  const [newDateTaskItem, setNewDateTaskItem] = useState({
+    name: '',
+    description: '',
+    priority: 'medium',
+    date: new Date().toISOString().split('T')[0],
+    time: ''
   });
 
   const daysOfWeek = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'];
@@ -54,6 +75,25 @@ function ActivityTracking() {
   // Helper function to get user-specific localStorage key
   const getUserKey = (userId, key) => {
     return `user_${userId}_${key}`;
+  };
+
+  // Priority sorting function
+  const sortTasksByPriority = (tasks) => {
+    const priorityOrder = { high: 0, medium: 1, low: 2 };
+    return [...tasks].sort((a, b) => {
+      const priorityDiff = priorityOrder[a.priority] - priorityOrder[b.priority];
+      if (priorityDiff !== 0) return priorityDiff;
+      return a.name.localeCompare(b.name);
+    });
+  };
+
+  // Sort date-specific tasks by date
+  const sortDateTasksByDate = (tasks) => {
+    return [...tasks].sort((a, b) => {
+      if (a.date < b.date) return -1;
+      if (a.date > b.date) return 1;
+      return a.name.localeCompare(b.name);
+    });
   };
 
   // Load all user data
@@ -72,11 +112,22 @@ function ActivityTracking() {
       setDailyActivity(JSON.parse(savedDaily));
     }
 
-    // Load tasks - NEW STRUCTURE
+    // Load weekly tasks
     const tasksKey = getUserKey(userId, 'tasksByDay');
     const savedTasks = localStorage.getItem(tasksKey);
     if (savedTasks) {
-      setTasksByDay(JSON.parse(savedTasks));
+      const loadedTasks = JSON.parse(savedTasks);
+      Object.keys(loadedTasks).forEach(day => {
+        loadedTasks[day] = sortTasksByPriority(loadedTasks[day]);
+      });
+      setTasksByDay(loadedTasks);
+    }
+
+    // Load date-specific tasks
+    const dateTasksKey = getUserKey(userId, 'dateSpecificTasks');
+    const savedDateTasks = localStorage.getItem(dateTasksKey);
+    if (savedDateTasks) {
+      setDateSpecificTasks(sortDateTasksByDate(JSON.parse(savedDateTasks)));
     }
   };
 
@@ -92,10 +143,16 @@ function ActivityTracking() {
     localStorage.setItem(dailyKey, JSON.stringify(activity));
   };
 
-  // Save tasks to localStorage - NEW STRUCTURE
+  // Save weekly tasks to localStorage
   const saveTasksByDay = (userId, tasks) => {
     const tasksKey = getUserKey(userId, 'tasksByDay');
     localStorage.setItem(tasksKey, JSON.stringify(tasks));
+  };
+
+  // Save date-specific tasks to localStorage
+  const saveDateSpecificTasks = (userId, tasks) => {
+    const dateTasksKey = getUserKey(userId, 'dateSpecificTasks');
+    localStorage.setItem(dateTasksKey, JSON.stringify(tasks));
   };
 
   // Auth state observer
@@ -225,7 +282,7 @@ function ActivityTracking() {
     saveTodos(user.uid, updatedTodos);
   };
 
-  // Task functions - NEW
+  // Weekly Task functions
   const navigateDay = (direction) => {
     const currentIndex = daysOfWeek.indexOf(currentDay);
     if (direction === 'next') {
@@ -257,12 +314,43 @@ function ActivityTracking() {
     saveTasksByDay(user.uid, updatedTasks);
   };
 
+  // Date-specific Task functions
+  const toggleDateTaskComplete = async (taskId) => {
+    if (!user) return;
+    const updatedTasks = dateSpecificTasks.map(task => 
+      task.id === taskId ? { ...task, completed: !task.completed } : task
+    );
+    setDateSpecificTasks(updatedTasks);
+    saveDateSpecificTasks(user.uid, updatedTasks);
+  };
+
+  const removeDateTask = async (taskId, e) => {
+    e.stopPropagation();
+    if (!user) return;
+    const updatedTasks = dateSpecificTasks.filter(task => task.id !== taskId);
+    setDateSpecificTasks(updatedTasks);
+    saveDateSpecificTasks(user.uid, updatedTasks);
+  };
+
+  // Get tasks for current date
+  const getTasksForCurrentDate = () => {
+    return dateSpecificTasks.filter(task => task.date === currentDate);
+  };
+
+  // Get upcoming tasks (future dates)
+  const getUpcomingTasks = () => {
+    const today = new Date().toISOString().split('T')[0];
+    return dateSpecificTasks.filter(task => task.date > today && !task.completed).slice(0, 3);
+  };
+
   // Task Modal Functions
   const openTaskModal = () => {
     setShowTaskModal(true);
     setNewTaskItem({
       name: '',
-      description: ''
+      description: '',
+      priority: 'medium',
+      type: 'weekly'
     });
   };
 
@@ -285,15 +373,61 @@ function ActivityTracking() {
         id: Date.now(),
         name: newTaskItem.name.trim(),
         description: newTaskItem.description.trim(),
+        priority: newTaskItem.priority || 'medium',
         completed: false
       };
       
       const updatedTasks = { ...tasksByDay };
       updatedTasks[currentDay] = [...updatedTasks[currentDay], task];
+      updatedTasks[currentDay] = sortTasksByPriority(updatedTasks[currentDay]);
       
       setTasksByDay(updatedTasks);
       saveTasksByDay(user.uid, updatedTasks);
       setShowTaskModal(false);
+    }
+  };
+
+  // Date-specific Task Modal Functions
+  const openDateTaskModal = () => {
+    setShowDateTaskModal(true);
+    setNewDateTaskItem({
+      name: '',
+      description: '',
+      priority: 'medium',
+      date: new Date().toISOString().split('T')[0],
+      time: ''
+    });
+  };
+
+  const closeDateTaskModal = () => {
+    setShowDateTaskModal(false);
+  };
+
+  const handleDateTaskInputChange = (e) => {
+    const { name, value } = e.target;
+    setNewDateTaskItem(prev => ({
+      ...prev,
+      [name]: value
+    }));
+  };
+
+  const handleAddDateTaskItem = async () => {
+    if (!user) return;
+    if (newDateTaskItem.name.trim() && newDateTaskItem.description.trim()) {
+      const task = {
+        id: Date.now(),
+        name: newDateTaskItem.name.trim(),
+        description: newDateTaskItem.description.trim(),
+        priority: newDateTaskItem.priority || 'medium',
+        date: newDateTaskItem.date,
+        time: newDateTaskItem.time,
+        completed: false
+      };
+      
+      const updatedTasks = [...dateSpecificTasks, task];
+      setDateSpecificTasks(sortDateTasksByDate(updatedTasks));
+      saveDateSpecificTasks(user.uid, sortDateTasksByDate(updatedTasks));
+      setShowDateTaskModal(false);
     }
   };
 
@@ -392,6 +526,12 @@ function ActivityTracking() {
     }
   };
 
+  // Format date for display
+  const formatDate = (dateString) => {
+    const options = { year: 'numeric', month: 'short', day: 'numeric' };
+    return new Date(dateString).toLocaleDateString(undefined, options);
+  };
+
   if (loading) {
     return (
       <div className="activity-container">
@@ -399,6 +539,9 @@ function ActivityTracking() {
       </div>
     );
   }
+
+  const todayTasks = getTasksForCurrentDate();
+  const upcomingTasks = getUpcomingTasks();
 
   return (
     <div className="activity-container">
@@ -506,63 +649,147 @@ function ActivityTracking() {
                   </div>
                   {timerStatus === 'active' && (
                     <div className="activity-status active-status">
-                       Activity in progress
+                      Activity in progress 
                     </div>
                   )}
                   {timerStatus === 'waiting' && (
                     <div className="activity-status waiting-status">
-                       Getting ready to start
+                      Getting ready to start
                     </div>
                   )}
                   {timerStatus === 'completed' && (
                     <div className="activity-status completed-status">
-                       Resets tomorrow at {dailyActivity.startTime}
+                      Resets tomorrow at {dailyActivity.startTime}
                     </div>
                   )}
                 </div>
               )}
             </div>
 
-            {/* Tasks Section - REDESIGNED */}
+            {/* Tasks Section - Split into Weekly and Date-Specific */}
             <div className="activity-card tasks-card">
               <div className="tasks-header">
-                <h2 className="card-title">TASKS</h2>
-                <button className="add-task-btn" onClick={openTaskModal}>+</button>
+                <h2 className="card-title">TASKS & REMINDERS</h2>
+                <div className="task-buttons">
+                  <button className="add-task-btn weekly" onClick={openTaskModal} title="Add weekly task">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                      <rect x="3" y="4" width="18" height="18" rx="2" stroke="currentColor" strokeWidth="2" fill="none"/>
+                      <line x1="8" y1="2" x2="8" y2="6" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/>
+                      <line x1="16" y1="2" x2="16" y2="6" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/>
+                      <line x1="3" y1="8" x2="21" y2="8" stroke="currentColor" strokeWidth="2"/>
+                      <circle cx="12" cy="14" r="1.5" fill="currentColor"/>
+                      <circle cx="17" cy="14" r="1.5" fill="currentColor"/>
+                    </svg>
+                  </button>
+                  <button className="add-task-btn date" onClick={openDateTaskModal} title="Add date-specific reminder">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                      <circle cx="12" cy="12" r="9" stroke="currentColor" strokeWidth="2" fill="none"/>
+                      <line x1="12" y1="8" x2="12" y2="12" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/>
+                      <line x1="12" y1="16" x2="12.01" y2="16" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/>
+                    </svg>
+                  </button>
+                </div>
               </div>
               
-              {/* Day Navigator */}
-              <div className="day-navigator">
-                <button className="nav-arrow" onClick={() => navigateDay('prev')}>←</button>
-                <h3 className="current-day">{currentDay}</h3>
-                <button className="nav-arrow" onClick={() => navigateDay('next')}>→</button>
+              {/* Weekly Tasks Section */}
+              <div className="weekly-tasks-section">
+                <div className="section-header">
+                  <h3 className="section-title">WEEKLY TASKS</h3>
+                  <div className="day-navigator mini">
+                    <button className="nav-arrow mini" onClick={() => navigateDay('prev')}>
+                      <svg width="12" height="12" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                        <path d="M15 18L9 12L15 6" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                      </svg>
+                    </button>
+                    <span className="current-day mini">{currentDay}</span>
+                    <button className="nav-arrow mini" onClick={() => navigateDay('next')}>
+                      <svg width="12" height="12" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                        <path d="M9 18L15 12L9 6" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                      </svg>
+                    </button>
+                  </div>
+                </div>
+
+                <div className="day-tasks">
+                  {tasksByDay[currentDay] && tasksByDay[currentDay].length > 0 ? (
+                    tasksByDay[currentDay].map(item => (
+                      <div 
+                        key={item.id} 
+                        className={`task-item priority-${item.priority || 'medium'} ${item.completed ? 'completed' : ''}`}
+                        onClick={(e) => e.stopPropagation()}
+                      >
+                        <span className="checkbox" onClick={(e) => {
+                          e.stopPropagation();
+                          toggleTaskComplete(currentDay, item.id);
+                        }}>
+                          {item.completed ? '✓' : '○'}
+                        </span>
+                        <div className="task-content">
+                          <div className="task-header">
+                            <span className="task-name">{item.name}</span>
+                          </div>
+                          <p className="task-description">{item.description}</p>
+                        </div>
+                        <span className="remove-task" onClick={(e) => removeTask(currentDay, item.id, e)}>✕</span>
+                      </div>
+                    ))
+                  ) : (
+                    <div className="empty-mini" onClick={openTaskModal}>
+                      <p>No tasks for {currentDay}</p>
+                    </div>
+                  )}
+                </div>
               </div>
 
-              {/* Tasks for Current Day */}
-              <div className="day-tasks">
-                {tasksByDay[currentDay] && tasksByDay[currentDay].length > 0 ? (
-                  tasksByDay[currentDay].map(item => (
-                    <div 
-                      key={item.id} 
-                      className={`task-item ${item.completed ? 'completed' : ''}`}
-                      onClick={(e) => e.stopPropagation()}
-                    >
-                      <span className="checkbox" onClick={(e) => {
-                        e.stopPropagation();
-                        toggleTaskComplete(currentDay, item.id);
-                      }}>
-                        {item.completed ? '✓' : '○'}
-                      </span>
-                      <div className="task-content">
-                        <span className="task-name">{item.name}</span>
-                        <p className="task-description">{item.description}</p>
+              {/* Date-Specific Tasks Section */}
+              <div className="date-tasks-section">
+                <h3 className="section-title">TODAY'S REMINDERS</h3>
+                <div className="current-date-display">
+                  {formatDate(currentDate)}
+                </div>
+                
+                <div className="date-tasks">
+                  {todayTasks.length > 0 ? (
+                    todayTasks.map(item => (
+                      <div 
+                        key={item.id} 
+                        className={`task-item priority-${item.priority || 'medium'} ${item.completed ? 'completed' : ''}`}
+                        onClick={(e) => e.stopPropagation()}
+                      >
+                        <span className="checkbox" onClick={(e) => {
+                          e.stopPropagation();
+                          toggleDateTaskComplete(item.id);
+                        }}>
+                          {item.completed ? '✓' : '○'}
+                        </span>
+                        <div className="task-content">
+                          <div className="task-header">
+                            <span className="task-name">{item.name}</span>
+                            {item.time && <span className="task-time">{item.time}</span>}
+                          </div>
+                          <p className="task-description">{item.description}</p>
+                        </div>
+                        <span className="remove-task" onClick={(e) => removeDateTask(item.id, e)}>✕</span>
                       </div>
-                      <span className="remove-task" onClick={(e) => removeTask(currentDay, item.id, e)}>✕</span>
+                    ))
+                  ) : (
+                    <div className="empty-mini no-hover">
+                      <p>No reminders for today</p>
                     </div>
-                  ))
-                ) : (
-                  <div className="empty-day-tasks" onClick={openTaskModal}>
-                    <p>No tasks for {currentDay}</p>
-                    <span className="add-icon-small">+</span>
+                  )}
+                </div>
+
+                {/* Upcoming Tasks */}
+                {upcomingTasks.length > 0 && (
+                  <div className="upcoming-tasks">
+                    <h4 className="upcoming-title">UPCOMING</h4>
+                    {upcomingTasks.map(item => (
+                      <div key={item.id} className="upcoming-item">
+                        <span className={`priority-dot mini ${item.priority}`}></span>
+                        <span className="upcoming-name">{item.name}</span>
+                        <span className="upcoming-date">{formatDate(item.date)}</span>
+                      </div>
+                    ))}
                   </div>
                 )}
               </div>
@@ -679,11 +906,11 @@ function ActivityTracking() {
         </div>
       )}
 
-      {/* Task Modal - UPDATED */}
+      {/* Weekly Task Modal */}
       {showTaskModal && (
         <div className="modal-overlay" onClick={closeTaskModal}>
           <div className="modal-content" onClick={(e) => e.stopPropagation()}>
-            <h3 className="modal-title">add task for {currentDay} |</h3>
+            <h3 className="modal-title">add weekly task for {currentDay} |</h3>
             
             <div className="modal-body">
               <div className="task-input-group">
@@ -707,8 +934,50 @@ function ActivityTracking() {
                   placeholder="Enter task description or notes..."
                   value={newTaskItem.description}
                   onChange={handleTaskInputChange}
-                  rows="4"
+                  rows="3"
                 />
+              </div>
+
+              {/* Priority Selection */}
+              <div className="task-input-group">
+                <label className="task-label">Priority</label>
+                <div className="priority-selector">
+                  <label className={`priority-option high ${newTaskItem.priority === 'high' ? 'selected' : ''}`}>
+                    <input
+                      type="radio"
+                      name="priority"
+                      value="high"
+                      checked={newTaskItem.priority === 'high'}
+                      onChange={handleTaskInputChange}
+                    />
+                    <span className="priority-dot high"></span>
+                    <span>High</span>
+                  </label>
+                  
+                  <label className={`priority-option medium ${newTaskItem.priority === 'medium' ? 'selected' : ''}`}>
+                    <input
+                      type="radio"
+                      name="priority"
+                      value="medium"
+                      checked={newTaskItem.priority === 'medium'}
+                      onChange={handleTaskInputChange}
+                    />
+                    <span className="priority-dot medium"></span>
+                    <span>Medium</span>
+                  </label>
+                  
+                  <label className={`priority-option low ${newTaskItem.priority === 'low' ? 'selected' : ''}`}>
+                    <input
+                      type="radio"
+                      name="priority"
+                      value="low"
+                      checked={newTaskItem.priority === 'low'}
+                      onChange={handleTaskInputChange}
+                    />
+                    <span className="priority-dot low"></span>
+                    <span>Low</span>
+                  </label>
+                </div>
               </div>
             </div>
 
@@ -722,6 +991,121 @@ function ActivityTracking() {
                 disabled={!newTaskItem.name || !newTaskItem.description}
               >
                 Add Task
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Date-Specific Task Modal */}
+      {showDateTaskModal && (
+        <div className="modal-overlay" onClick={closeDateTaskModal}>
+          <div className="modal-content" onClick={(e) => e.stopPropagation()}>
+            <h3 className="modal-title">add reminder |</h3>
+            
+            <div className="modal-body">
+              <div className="task-input-group">
+                <label className="task-label">Reminder</label>
+                <input
+                  type="text"
+                  name="name"
+                  className="task-field-input"
+                  placeholder="Enter reminder name..."
+                  value={newDateTaskItem.name}
+                  onChange={handleDateTaskInputChange}
+                  autoFocus
+                />
+              </div>
+
+              <div className="task-input-group">
+                <label className="task-label">Description</label>
+                <textarea
+                  name="description"
+                  className="task-textarea"
+                  placeholder="Enter description..."
+                  value={newDateTaskItem.description}
+                  onChange={handleDateTaskInputChange}
+                  rows="2"
+                />
+              </div>
+
+              <div className="date-time-group">
+                <div className="task-input-group half">
+                  <label className="task-label">Date</label>
+                  <input
+                    type="date"
+                    name="date"
+                    className="task-field-input"
+                    value={newDateTaskItem.date}
+                    onChange={handleDateTaskInputChange}
+                  />
+                </div>
+
+                <div className="task-input-group half">
+                  <label className="task-label">Time (optional)</label>
+                  <input
+                    type="time"
+                    name="time"
+                    className="task-field-input"
+                    value={newDateTaskItem.time}
+                    onChange={handleDateTaskInputChange}
+                  />
+                </div>
+              </div>
+
+              {/* Priority Selection */}
+              <div className="task-input-group">
+                <label className="task-label">Priority</label>
+                <div className="priority-selector">
+                  <label className={`priority-option high ${newDateTaskItem.priority === 'high' ? 'selected' : ''}`}>
+                    <input
+                      type="radio"
+                      name="priority"
+                      value="high"
+                      checked={newDateTaskItem.priority === 'high'}
+                      onChange={handleDateTaskInputChange}
+                    />
+                    <span className="priority-dot high"></span>
+                    <span>High</span>
+                  </label>
+                  
+                  <label className={`priority-option medium ${newDateTaskItem.priority === 'medium' ? 'selected' : ''}`}>
+                    <input
+                      type="radio"
+                      name="priority"
+                      value="medium"
+                      checked={newDateTaskItem.priority === 'medium'}
+                      onChange={handleDateTaskInputChange}
+                    />
+                    <span className="priority-dot medium"></span>
+                    <span>Medium</span>
+                  </label>
+                  
+                  <label className={`priority-option low ${newDateTaskItem.priority === 'low' ? 'selected' : ''}`}>
+                    <input
+                      type="radio"
+                      name="priority"
+                      value="low"
+                      checked={newDateTaskItem.priority === 'low'}
+                      onChange={handleDateTaskInputChange}
+                    />
+                    <span className="priority-dot low"></span>
+                    <span>Low</span>
+                  </label>
+                </div>
+              </div>
+            </div>
+
+            <div className="modal-footer">
+              <button className="modal-btn exit-btn" onClick={closeDateTaskModal}>
+                Cancel
+              </button>
+              <button 
+                className="modal-btn add-btn" 
+                onClick={handleAddDateTaskItem}
+                disabled={!newDateTaskItem.name || !newDateTaskItem.description}
+              >
+                Add Reminder
               </button>
             </div>
           </div>

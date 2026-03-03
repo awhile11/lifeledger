@@ -224,6 +224,59 @@
   transform: scale(1.1);
 }
 
+/* Fun Fact Banner - Updated with cyan border only */
+.fun-fact-banner {
+  background: transparent;
+  border: 2px solid var(--accent-color);
+  padding: 15px 20px;
+  border-radius: 12px;
+  margin-top: 15px;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  animation: borderGlow 2s infinite;
+}
+
+@keyframes borderGlow {
+  0% {
+    border-color: var(--accent-color);
+    box-shadow: 0 0 5px rgba(34, 211, 238, 0.3);
+  }
+  50% {
+    border-color: #3b82f6;
+    box-shadow: 0 0 20px rgba(34, 211, 238, 0.6);
+  }
+  100% {
+    border-color: var(--accent-color);
+    box-shadow: 0 0 5px rgba(34, 211, 238, 0.3);
+  }
+}
+
+.fun-fact-icon {
+  font-size: 24px;
+  color: var(--accent-color);
+  animation: bounce 2s infinite;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+@keyframes bounce {
+  0%, 100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(-5px);
+  }
+}
+
+.fun-fact-text {
+  color: var(--text-primary);
+  font-size: 16px;
+  font-weight: bold;
+  letter-spacing: 0.5px;
+}
+
 /* Stats Grid */
 .stats-grid {
   display: grid;
@@ -467,6 +520,207 @@
   font-style: italic;
 }
 
+/* Health Highlights Row - Updated with drawn icons */
+.health-highlights-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  margin: 25px 0 20px 0;
+  padding: 15px;
+  background: var(--card-bg);
+  border: 1px solid var(--card-border);
+  border-radius: 16px;
+}
+
+.health-highlight-card {
+  flex: 1;
+  min-width: 140px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 12px;
+  background: var(--bg-secondary);
+  border-radius: 12px;
+  border: 1px solid var(--border-color);
+  transition: all 0.2s ease;
+}
+
+.health-highlight-card:hover {
+  transform: translateY(-2px);
+  border-color: var(--accent-color);
+  box-shadow: 0 5px 15px rgba(34, 211, 238, 0.1);
+}
+
+.water-mini:hover {
+  border-color: #3b82f6;
+}
+
+.steps-mini:hover {
+  border-color: #10b981;
+}
+
+.sleep-mini:hover {
+  border-color: #8b5cf6;
+}
+
+.workout-mini:hover {
+  border-color: var(--accent-color);
+}
+
+.habit-mini:hover {
+  border-color: var(--warning-color);
+}
+
+.weight-mini:hover {
+  border-color: #ff6b6b;
+}
+
+/* Drawn icons for health highlights */
+.health-highlight-icon {
+  font-size: 24px;
+  min-width: 40px;
+  text-align: center;
+  font-weight: bold;
+  color: var(--accent-color);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.water-mini .health-highlight-icon::before {
+  content: '💧';
+  filter: grayscale(100%);
+}
+
+.steps-mini .health-highlight-icon::before {
+  content: '👣';
+  filter: grayscale(100%);
+}
+
+.sleep-mini .health-highlight-icon::before {
+  content: '😴';
+  filter: grayscale(100%);
+}
+
+.workout-mini .health-highlight-icon::before {
+  content: '💪';
+  filter: grayscale(100%);
+}
+
+.habit-mini .health-highlight-icon::before {
+  content: '✓';
+  font-size: 28px;
+}
+
+.weight-mini .health-highlight-icon::before {
+  content: '⚖️';
+  filter: grayscale(100%);
+}
+
+.health-highlight-content {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.health-highlight-label {
+  color: var(--text-secondary);
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.health-highlight-value {
+  color: var(--text-primary);
+  font-size: 16px;
+  font-weight: bold;
+}
+
+.health-highlight-value-small {
+  color: var(--text-primary);
+  font-size: 12px;
+  font-weight: bold;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.health-mini-progress {
+  width: 100%;
+  height: 4px;
+  background: var(--progress-bg);
+  border-radius: 2px;
+  margin-top: 2px;
+  overflow: hidden;
+}
+
+.health-mini-fill {
+  height: 100%;
+  border-radius: 2px;
+  transition: width 0.3s ease;
+}
+
+.water-fill {
+  background: linear-gradient(90deg, #22D3EE, #3b82f6);
+}
+
+.steps-fill {
+  background: linear-gradient(90deg, #22D3EE, #10b981);
+}
+
+.habit-fill {
+  background: linear-gradient(90deg, #ff9800, #f44336);
+}
+
+/* Motivation Message - Updated with drawn icon */
+.motivation-message {
+  background: var(--bg-secondary);
+  border: 1px solid var(--border-color);
+  border-radius: 12px;
+  padding: 15px 20px;
+  margin: 20px 0 25px 0;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  transition: all 0.2s ease;
+}
+
+.motivation-message:hover {
+  border-color: var(--accent-color);
+  transform: scale(1.01);
+}
+
+.motivation-icon {
+  font-size: 24px;
+  color: var(--accent-color);
+  animation: spin 10s linear infinite;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.motivation-icon::before {
+  content: '✨';
+  filter: grayscale(50%);
+}
+
+@keyframes spin {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.motivation-text {
+  color: var(--text-primary);
+  font-size: 16px;
+  font-style: italic;
+  line-height: 1.5;
+}
+
 /* Bottom Section */
 .dashboard-bottom {
   display: grid;
@@ -530,6 +784,10 @@
 
 .focus-icon {
   font-size: 24px;
+  color: var(--accent-color);
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }
 
 .focus-details {
@@ -630,12 +888,44 @@
   border-left: 4px solid var(--success-color);
 }
 
+.alert-item.info {
+  background: rgba(34, 211, 238, 0.1);
+  border-left: 4px solid var(--accent-color);
+}
+
 .alert-item:hover {
   transform: translateX(5px);
 }
 
 .alert-icon {
   font-size: 18px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.alert-item.error .alert-icon::before {
+  content: '✕';
+  color: var(--danger-color);
+  font-weight: bold;
+}
+
+.alert-item.warning .alert-icon::before {
+  content: '⚠';
+  color: var(--warning-color);
+  font-weight: bold;
+}
+
+.alert-item.success .alert-icon::before {
+  content: '✓';
+  color: var(--success-color);
+  font-weight: bold;
+}
+
+.alert-item.info .alert-icon::before {
+  content: 'ℹ';
+  color: var(--accent-color);
+  font-weight: bold;
 }
 
 .alert-message {
@@ -655,6 +945,10 @@
 
 .alert-item.success .alert-message {
   color: var(--success-color);
+}
+
+.alert-item.info .alert-message {
+  color: var(--accent-color);
 }
 
 .alert-empty {
@@ -873,6 +1167,10 @@
   .task-stat-value {
     font-size: 18px;
   }
+  
+  .health-highlight-card {
+    min-width: 120px;
+  }
 }
 
 @media (max-width: 1024px) {
@@ -886,6 +1184,11 @@
   
   .streak-value {
     font-size: 40px;
+  }
+  
+  .health-highlights-row {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
   }
 }
 
@@ -931,6 +1234,10 @@
   
   .task-stat-value {
     font-size: 18px;
+  }
+  
+  .health-highlights-row {
+    grid-template-columns: repeat(2, 1fr);
   }
 }
 
@@ -998,6 +1305,28 @@
   
   .task-stat-label {
     font-size: 10px;
+  }
+  
+  .health-highlights-row {
+    grid-template-columns: repeat(2, 1fr);
+    gap: 10px;
+    padding: 12px;
+  }
+  
+  .health-highlight-card {
+    min-width: auto;
+  }
+  
+  .fun-fact-banner {
+    padding: 12px 15px;
+  }
+  
+  .fun-fact-text {
+    font-size: 14px;
+  }
+  
+  .motivation-text {
+    font-size: 14px;
   }
   
   /* Modal Responsive */
@@ -1109,6 +1438,34 @@
     font-size: 14px;
   }
   
+  .health-highlights-row {
+    grid-template-columns: 1fr;
+  }
+  
+  .health-highlight-card {
+    width: 100%;
+  }
+  
+  .fun-fact-banner {
+    flex-direction: column;
+    text-align: center;
+    gap: 8px;
+  }
+  
+  .fun-fact-icon {
+    font-size: 24px;
+  }
+  
+  .fun-fact-text {
+    font-size: 13px;
+  }
+  
+  .motivation-message {
+    flex-direction: column;
+    text-align: center;
+    gap: 8px;
+  }
+  
   .focus-task {
     font-size: 16px;
   }
@@ -1123,10 +1480,6 @@
   
   .alert-message {
     font-size: 13px;
-  }
-  
-  .alert-icon {
-    font-size: 16px;
   }
   
   .modal-title {

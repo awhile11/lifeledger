@@ -253,16 +253,18 @@ function ActivityTracking() {
     }
   };
 
-  const handleNavigation = (tab) => {
-    setActiveTab(tab);
-    if (tab === 'home') {
-      navigate('/dashboard');
-    } else if (tab === 'activity') {
-      navigate('/activity');
-    } else if (tab === 'financial') {
-      navigate('/financial');
-    }
-  };
+const handleNavigation = (tab) => {
+  setActiveTab(tab);
+  if (tab === 'home') {
+    navigate('/dashboard');
+  } else if (tab === 'activity') {
+    navigate('/activity');
+  } else if (tab === 'financial') {
+    navigate('/financial');
+  } else if (tab === 'health') {
+    navigate('/health');
+  }
+};
 
   // Todo functions
   const toggleTodoComplete = async (id) => {
@@ -551,31 +553,39 @@ function ActivityTracking() {
           <h2 className="sidebar-logo">LIFELEADGER</h2>
         </div>
         
-        <div className="sidebar-menu">
-          <div 
-            className={`menu-item ${activeTab === 'home' ? 'active' : ''}`}
-            onClick={() => handleNavigation('home')}
-          >
-            <span className="menu-text">Home</span>
-            <span className="menu-indicator"></span>
-          </div>
-          
-          <div 
-            className={`menu-item ${activeTab === 'activity' ? 'active' : ''}`}
-            onClick={() => handleNavigation('activity')}
-          >
-            <span className="menu-text">Activity Tracking</span>
-            <span className="menu-indicator"></span>
-          </div>
-          
-          <div 
-            className={`menu-item ${activeTab === 'financial' ? 'active' : ''}`}
-            onClick={() => handleNavigation('financial')}
-          >
-            <span className="menu-text">Financial Tracking</span>
-            <span className="menu-indicator"></span>
-          </div>
-        </div>
+<div className="sidebar-menu">
+  <div 
+    className={`menu-item ${activeTab === 'home' ? 'active' : ''}`}
+    onClick={() => handleNavigation('home')}
+  >
+    <span className="menu-text">Home</span>
+    <span className="menu-indicator"></span>
+  </div>
+  
+  <div 
+    className={`menu-item ${activeTab === 'activity' ? 'active' : ''}`}
+    onClick={() => handleNavigation('activity')}
+  >
+    <span className="menu-text">Activity Tracking</span>
+    <span className="menu-indicator"></span>
+  </div>
+  
+  <div 
+    className={`menu-item ${activeTab === 'financial' ? 'active' : ''}`}
+    onClick={() => handleNavigation('financial')}
+  >
+    <span className="menu-text">Financial Tracking</span>
+    <span className="menu-indicator"></span>
+  </div>
+
+  <div 
+    className={`menu-item ${activeTab === 'health' ? 'active' : ''}`}
+    onClick={() => handleNavigation('health')}
+  >
+    <span className="menu-text">Health & Fitness</span>
+    <span className="menu-indicator"></span>
+  </div>
+</div>
 
         <div className="sidebar-footer">
           <button className="logout-btn" onClick={handleLogout}>

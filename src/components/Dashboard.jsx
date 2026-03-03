@@ -22,6 +22,18 @@ function Dashboard() {
     totalCompleted: 0
   });
   
+  // Health & Fitness data
+  const [healthHighlights, setHealthHighlights] = useState({
+    waterIntake: { current: 0, goal: 3.7, percentage: 0 },
+    steps: { current: 0, goal: 10000, percentage: 0 },
+    sleep: { hours: 0, minutes: 0, status: 'pending', message: '' },
+    workouts: { completed: 0, total: 0, percentage: 0 },
+    habits: { completed: 0, total: 0, percentage: 0 },
+    weightChange: { change: 0, trend: 'stable', display: '' },
+    funFact: '',
+    motivationMessage: ''
+  });
+  
   // Task completion data
   const [taskData, setTaskData] = useState({
     totalTasks: 0,
@@ -48,11 +60,189 @@ function Dashboard() {
     return `user_${userId}_${key}`;
   };
 
+  // Load health highlights from Health & Fitness page
+  const loadHealthHighlights = (userId) => {
+    try {
+      const healthKey = getUserKey(userId, 'healthData');
+      const savedHealth = localStorage.getItem(healthKey);
+      
+      if (savedHealth) {
+        const health = JSON.parse(savedHealth);
+        
+        // Calculate water percentage
+        const waterPercentage = health.waterIntake?.goal > 0 
+          ? Math.round((health.waterIntake.current / health.waterIntake.goal) * 100)
+          : 0;
+        
+        // Calculate steps percentage
+        const stepsPercentage = health.steps?.goal > 0
+          ? Math.round((health.steps.current / health.steps.goal) * 100)
+          : 0;
+        
+        // Calculate workout completion
+        let totalWorkouts = 0;
+        let completedWorkouts = 0;
+        if (health.workout?.routines) {
+          Object.values(health.workout.routines).forEach(dayExercises => {
+            dayExercises.forEach(exercise => {
+              totalWorkouts++;
+              if (exercise.completed) completedWorkouts++;
+            });
+          });
+        }
+        const workoutPercentage = totalWorkouts > 0 
+          ? Math.round((completedWorkouts / totalWorkouts) * 100)
+          : 0;
+        
+        // Calculate habit completion
+        const totalHabits = health.habits?.length || 0;
+        const completedHabits = health.habits?.filter(h => h.completed).length || 0;
+        const habitPercentage = totalHabits > 0
+          ? Math.round((completedHabits / totalHabits) * 100)
+          : 0;
+        
+        // Calculate weight change
+        let weightChangeDisplay = '';
+        let weightTrend = 'stable';
+        let weightChangeValue = 0;
+        
+        if (health.weightTracker?.history && health.weightTracker.history.length >= 2) {
+          const sortedHistory = [...health.weightTracker.history].sort((a, b) => 
+            new Date(a.date) - new Date(b.date)
+          );
+          const first = sortedHistory[0];
+          const last = sortedHistory[sortedHistory.length - 1];
+          
+          const firstValue = first.unit === 'lbs' ? first.weight : first.weight * 2.20462;
+          const lastValue = last.unit === 'lbs' ? last.weight : last.weight * 2.20462;
+          
+          weightChangeValue = lastValue - firstValue;
+          weightTrend = weightChangeValue > 0.5 ? 'gained' : weightChangeValue < -0.5 ? 'lost' : 'stable';
+          
+          if (weightTrend === 'lost') {
+            weightChangeDisplay = ` Lost ${Math.abs(weightChangeValue).toFixed(1)} ${health.weightTracker.unit}`;
+          } else if (weightTrend === 'gained') {
+            weightChangeDisplay = ` Gained ${weightChangeValue.toFixed(1)} ${health.weightTracker.unit}`;
+          } else {
+            weightChangeDisplay = `⚖️ Weight stable`;
+          }
+        }
+        
+        // Generate fun facts
+        const funFacts = [];
+        
+        if (waterPercentage >= 100) {
+          funFacts.push(" You're a hydration hero! Water you waiting for? More wins!");
+        } else if (waterPercentage >= 75) {
+          funFacts.push(" Almost there! Your cells are throwing a hydration party!");
+        } else if (waterPercentage >= 50) {
+          funFacts.push(" Halfway to hydration station! Keep sipping!");
+        }
+        
+        if (stepsPercentage >= 100) {
+          funFacts.push(" Step champion! Your legs are basically superpowers!");
+        } else if (stepsPercentage >= 75) {
+          funFacts.push(" On fire! Your step count is climbing mountains!");
+        }
+        
+        if (health.sleep?.totalHours > 0) {
+          if (health.sleep.totalHours >= 8) {
+            funFacts.push(" Sleep master! You're catching those Z's like a pro!");
+          } else if (health.sleep.totalHours >= 6) {
+            funFacts.push(" Getting there! Dreamland is calling your name tonight!");
+          }
+        }
+        
+        if (workoutPercentage >= 100) {
+          funFacts.push(" Workout warrior! You're crushing it like a fitness influencer!");
+        } else if (workoutPercentage >= 75) {
+          funFacts.push(" Almost there! Your muscles are cheering you on!");
+        }
+        
+        if (habitPercentage >= 80) {
+          funFacts.push(" Habit hero! You're building a lifestyle, not just a routine!");
+        }
+        
+        if (weightTrend === 'lost' && weightChangeValue > 2) {
+          funFacts.push(" Major weight loss! Your old clothes are feeling left out!");
+        } else if (weightTrend === 'gained' && weightChangeValue > 2 && health.weightTracker?.enabled) {
+          funFacts.push(" Muscle gains detected! You're getting stronger every day!");
+        }
+        
+        // Generate motivation message
+        let motivationMessage = '';
+        const now = new Date();
+        const hour = now.getHours();
+        
+        if (hour < 12) {
+          motivationMessage = " Rise and shine! Today's another chance to crush your goals!";
+        } else if (hour < 17) {
+          motivationMessage = " Afternoon energy! You're halfway to greatness!";
+        } else {
+          motivationMessage = " Evening vibes! Wrapping up like a champion!";
+        }
+        
+        // Add health-specific motivation
+        if (health.sleep?.sleepStatus === 'under-slept') {
+          motivationMessage = " You need more sleep, but you're still showing up! That's dedication!";
+        } else if (health.sleep?.sleepStatus === 'optimal') {
+          motivationMessage = " Well-rested and ready to conquer! You're unstoppable today!";
+        }
+        
+        setHealthHighlights({
+          waterIntake: {
+            current: health.waterIntake?.current || 0,
+            goal: health.waterIntake?.goal || 3.7,
+            percentage: waterPercentage
+          },
+          steps: {
+            current: health.steps?.current || 0,
+            goal: health.steps?.goal || 10000,
+            percentage: stepsPercentage
+          },
+          sleep: {
+            hours: health.sleep?.totalHours || 0,
+            minutes: health.sleep?.totalMinutes || 0,
+            status: health.sleep?.sleepStatus || 'pending',
+            message: health.sleep?.message || ''
+          },
+          workouts: {
+            completed: completedWorkouts,
+            total: totalWorkouts,
+            percentage: workoutPercentage
+          },
+          habits: {
+            completed: completedHabits,
+            total: totalHabits,
+            percentage: habitPercentage
+          },
+          weightChange: {
+            change: weightChangeValue,
+            trend: weightTrend,
+            display: weightChangeDisplay
+          },
+          funFact: funFacts.length > 0 ? funFacts[Math.floor(Math.random() * funFacts.length)] : "✨ You're doing amazing! Keep going!",
+          motivationMessage
+        });
+      } else {
+        // Default fun facts if no health data
+        setHealthHighlights(prev => ({
+          ...prev,
+          funFact: " Start tracking your health to see fun facts here!",
+          motivationMessage: " Every great journey starts with a single step. Start tracking today!"
+        }));
+      }
+    } catch (error) {
+      console.error('Error loading health highlights:', error);
+    }
+  };
+
   // Load all user data
   const loadAllUserData = (userId) => {
     loadBudgetFromStorage(userId);
     loadFinancialData(userId);
     loadImmediateFocus(userId);
+    loadHealthHighlights(userId);
     updateSystemAlerts(userId);
     calculateStreak(userId);
     calculateTaskCompletion(userId);
@@ -326,6 +516,29 @@ function Dashboard() {
       alerts.push({ type: 'warning', message: `${Math.round(dashboardData.finance.percentageUsed)}% of budget used` });
     }
 
+    // Health & Fitness alerts
+    if (healthHighlights.waterIntake.percentage < 50 && healthHighlights.waterIntake.percentage > 0) {
+      alerts.push({ type: 'info', message: ` Only ${healthHighlights.waterIntake.percentage}% water intake - Time to hydrate!` });
+    }
+    
+    if (healthHighlights.steps.percentage < 50 && healthHighlights.steps.percentage > 0) {
+      alerts.push({ type: 'info', message: ` ${healthHighlights.steps.percentage}% steps - Let's get moving!` });
+    }
+    
+    if (healthHighlights.sleep.status === 'under-slept') {
+      alerts.push({ type: 'warning', message: ` You're under-slept - Try to rest more tonight!` });
+    } else if (healthHighlights.sleep.status === 'optimal') {
+      alerts.push({ type: 'success', message: ` Perfect sleep! You're well-rested!` });
+    }
+    
+    if (healthHighlights.workouts.percentage === 100 && healthHighlights.workouts.total > 0) {
+      alerts.push({ type: 'success', message: ` All workouts completed! You're a beast!` });
+    }
+    
+    if (healthHighlights.weightChange.trend === 'lost' && healthHighlights.weightChange.change > 2) {
+      alerts.push({ type: 'success', message: ` ${healthHighlights.weightChange.display}` });
+    }
+
     // Check for active daily activity - ONLY for System Alerts
     try {
       const dailyKey = getUserKey(userId, 'dailyActivity');
@@ -371,12 +584,12 @@ function Dashboard() {
 
     // Add streak alert
     if (streakData.currentStreak > 0) {
-      alerts.push({ type: 'success', message: `${streakData.currentStreak}-day productivity streak!` });
+      alerts.push({ type: 'success', message: `${streakData.currentStreak}-day productivity streak! 🔥` });
     }
 
     setDashboardData(prev => ({
       ...prev,
-      systemAlerts: alerts.slice(0, 3) // Show top 3 alerts
+      systemAlerts: alerts.slice(0, 5) // Show top 5 alerts
     }));
   };
 
@@ -419,16 +632,18 @@ function Dashboard() {
     }
   };
 
-  const handleNavigation = (tab) => {
-    setActiveTab(tab);
-    if (tab === 'home') {
-      navigate('/dashboard');
-    } else if (tab === 'activity') {
-      navigate('/activity');
-    } else if (tab === 'financial') {
-      navigate('/financial');
-    }
-  };
+const handleNavigation = (tab) => {
+  setActiveTab(tab);
+  if (tab === 'home') {
+    navigate('/dashboard');
+  } else if (tab === 'activity') {
+    navigate('/activity');
+  } else if (tab === 'financial') {
+    navigate('/financial');
+  } else if (tab === 'health') {
+    navigate('/health');
+  }
+};
 
   const openBudgetModal = () => {
     setNewBudget(dashboardData.finance.monthlyBudget.toString() || '');
@@ -511,6 +726,11 @@ function Dashboard() {
 
   const budgetStatus = getBudgetStatus();
 
+  // Format sleep time
+  const sleepTime = healthHighlights.sleep.hours > 0 || healthHighlights.sleep.minutes > 0
+    ? `${healthHighlights.sleep.hours}h ${healthHighlights.sleep.minutes}m`
+    : '-- : --';
+
   return (
     <div className="dashboard-container">
       {/* Left Sidebar */}
@@ -519,31 +739,39 @@ function Dashboard() {
           <h2 className="sidebar-logo">LIFELEADGER</h2>
         </div>
         
-        <div className="sidebar-menu">
-          <div 
-            className={`menu-item ${activeTab === 'home' ? 'active' : ''}`}
-            onClick={() => handleNavigation('home')}
-          >
-            <span className="menu-text">Home</span>
-            <span className="menu-indicator"></span>
-          </div>
-          
-          <div 
-            className={`menu-item ${activeTab === 'activity' ? 'active' : ''}`}
-            onClick={() => handleNavigation('activity')}
-          >
-            <span className="menu-text">Activity Tracking</span>
-            <span className="menu-indicator"></span>
-          </div>
-          
-          <div 
-            className={`menu-item ${activeTab === 'financial' ? 'active' : ''}`}
-            onClick={() => handleNavigation('financial')}
-          >
-            <span className="menu-text">Financial Tracking</span>
-            <span className="menu-indicator"></span>
-          </div>
-        </div>
+<div className="sidebar-menu">
+  <div 
+    className={`menu-item ${activeTab === 'home' ? 'active' : ''}`}
+    onClick={() => handleNavigation('home')}
+  >
+    <span className="menu-text">Home</span>
+    <span className="menu-indicator"></span>
+  </div>
+  
+  <div 
+    className={`menu-item ${activeTab === 'activity' ? 'active' : ''}`}
+    onClick={() => handleNavigation('activity')}
+  >
+    <span className="menu-text">Activity Tracking</span>
+    <span className="menu-indicator"></span>
+  </div>
+  
+  <div 
+    className={`menu-item ${activeTab === 'financial' ? 'active' : ''}`}
+    onClick={() => handleNavigation('financial')}
+  >
+    <span className="menu-text">Financial Tracking</span>
+    <span className="menu-indicator"></span>
+  </div>
+
+  <div 
+    className={`menu-item ${activeTab === 'health' ? 'active' : ''}`}
+    onClick={() => handleNavigation('health')}
+  >
+    <span className="menu-text">Health & Fitness</span>
+    <span className="menu-indicator"></span>
+  </div>
+</div>
 
         <div className="sidebar-footer">
           <button className="logout-btn" onClick={handleLogout}>
@@ -578,6 +806,11 @@ function Dashboard() {
                   <line x1="20" y1="20" x2="16" y2="16" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/>
                 </svg>
               </button>
+            </div>
+            
+            {/* Fun Fact Banner */}
+            <div className="fun-fact-banner">
+              <span className="fun-fact-text">{healthHighlights.funFact}</span>
             </div>
           </div>
 
@@ -696,6 +929,70 @@ function Dashboard() {
                 )}
               </div>
             </div>
+          </div>
+
+          {/* Health Highlights Row */}
+          <div className="health-highlights-row">
+            <div className="health-highlight-card water-mini">
+              <div className="health-highlight-content">
+                <span className="health-highlight-label">Water</span>
+                <span className="health-highlight-value">{healthHighlights.waterIntake.percentage}%</span>
+                <div className="health-mini-progress">
+                  <div className="health-mini-fill water-fill" style={{ width: `${healthHighlights.waterIntake.percentage}%` }}></div>
+                </div>
+              </div>
+            </div>
+            
+            <div className="health-highlight-card steps-mini">
+              <div className="health-highlight-content">
+                <span className="health-highlight-label">Steps</span>
+                <span className="health-highlight-value">{healthHighlights.steps.percentage}%</span>
+                <div className="health-mini-progress">
+                  <div className="health-mini-fill steps-fill" style={{ width: `${healthHighlights.steps.percentage}%` }}></div>
+                </div>
+              </div>
+            </div>
+            
+            <div className="health-highlight-card sleep-mini">
+              <div className="health-highlight-content">
+                <span className="health-highlight-label">Sleep</span>
+                <span className="health-highlight-value">{sleepTime}</span>
+              </div>
+            </div>
+            
+            <div className="health-highlight-card workout-mini">
+              <div className="health-highlight-content">
+                <span className="health-highlight-label">Workouts</span>
+                <span className="health-highlight-value">{healthHighlights.workouts.completed}/{healthHighlights.workouts.total}</span>
+              </div>
+            </div>
+            
+            <div className="health-highlight-card habit-mini">
+              <div className="health-highlight-content">
+                <span className="health-highlight-label">Habits</span>
+                <span className="health-highlight-value">{healthHighlights.habits.percentage}%</span>
+                <div className="health-mini-progress">
+                  <div className="health-mini-fill habit-fill" style={{ width: `${healthHighlights.habits.percentage}%` }}></div>
+                </div>
+              </div>
+            </div>
+            
+            {healthHighlights.weightChange.display && (
+              <div className="health-highlight-card weight-mini">
+                <div className="health-highlight-icon">
+                  {healthHighlights.weightChange.trend === 'lost' ? '📉' : healthHighlights.weightChange.trend === 'gained' ? '📈' : '⚖️'}
+                </div>
+                <div className="health-highlight-content">
+                  <span className="health-highlight-label">Weight</span>
+                  <span className="health-highlight-value-small">{healthHighlights.weightChange.display}</span>
+                </div>
+              </div>
+            )}
+          </div>
+
+          {/* Motivation Message */}
+          <div className="motivation-message">
+            <span className="motivation-text">{healthHighlights.motivationMessage}</span>
           </div>
 
           {/* Bottom Section */}

@@ -129,6 +129,81 @@
   font-family: 'Audiowide', cursive;
 }
 
+/* Gender Radio Group */
+.gender-radio-group {
+  display: flex;
+  gap: 15px;
+  margin-top: 5px;
+}
+
+.gender-radio {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 15px;
+  background: var(--bg-secondary);
+  border: 2px solid transparent;
+  border-radius: 10px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  flex: 1;
+}
+
+.gender-radio:hover {
+  background: var(--hover-bg);
+  transform: translateY(-2px);
+}
+
+.gender-radio.selected {
+  border-color: var(--accent-color);
+  background: rgba(34, 211, 238, 0.1);
+}
+
+.gender-radio input[type="radio"] {
+  position: absolute;
+  opacity: 0;
+  width: 0;
+  height: 0;
+}
+
+.gender-radio .radio-custom {
+  width: 20px;
+  height: 20px;
+  border: 2px solid var(--text-secondary);
+  border-radius: 50%;
+  position: relative;
+  transition: all 0.2s ease;
+}
+
+.gender-radio.selected .radio-custom {
+  border-color: var(--accent-color);
+}
+
+.gender-radio.selected .radio-custom::after {
+  content: '';
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  width: 10px;
+  height: 10px;
+  background: var(--accent-color);
+  border-radius: 50%;
+}
+
+.gender-label {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: var(--text-primary);
+  font-size: 15px;
+  font-family: 'Audiowide', cursive;
+}
+
+.gender-icon {
+  font-size: 18px;
+}
+
 .save-profile-btn {
   width: 100%;
   padding: 12px;
@@ -301,11 +376,28 @@
     padding: 20px;
   }
   
+  .gender-radio-group {
+    flex-direction: column;
+    gap: 10px;
+  }
+  
+  .gender-radio {
+    width: 100%;
+  }
+  
   .theme-label {
     font-size: 14px;
   }
   
   .theme-icon {
     font-size: 18px;
+  }
+  
+  .gender-label {
+    font-size: 14px;
+  }
+  
+  .gender-icon {
+    font-size: 16px;
   }
 }

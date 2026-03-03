@@ -146,6 +146,35 @@
   transition: color 0.3s ease;
 }
 
+/* Month Reset Indicator */
+.month-indicator {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  margin-left: 15px;
+  font-size: 16px;
+}
+
+.month-reset-badge {
+  display: inline-block;
+  padding: 4px 10px;
+  background: rgba(34, 211, 238, 0.1);
+  border: 1px solid var(--accent-color);
+  border-radius: 20px;
+  color: var(--accent-color);
+  font-size: 12px;
+  animation: pulse 2s infinite;
+}
+
+@keyframes pulse {
+  0%, 100% {
+    opacity: 0.7;
+  }
+  50% {
+    opacity: 1;
+  }
+}
+
 /* Top Row - Flex layout */
 .top-row {
   display: flex;
@@ -171,6 +200,19 @@
   display: flex;
   flex-direction: column;
   min-height: 200px;
+  position: relative;
+  overflow: hidden;
+}
+
+.expense-card::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  right: 0;
+  width: 40px;
+  height: 40px;
+  background: linear-gradient(135deg, transparent 50%, rgba(34, 211, 238, 0.1) 50%);
+  pointer-events: none;
 }
 
 .expense-card:hover {
@@ -187,6 +229,18 @@
   padding-bottom: 10px;
   border-bottom: 1px solid var(--border-color);
   transition: color 0.3s ease, border-color 0.3s ease;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.month-label {
+  font-size: 12px;
+  color: var(--accent-color);
+  background: rgba(34, 211, 238, 0.1);
+  padding: 2px 8px;
+  border-radius: 12px;
+  font-weight: normal;
 }
 
 .expense-items {
@@ -727,6 +781,31 @@
   -moz-appearance: textfield;
 }
 
+/* Confirm Modal */
+.confirm-modal {
+  max-width: 400px;
+}
+
+.confirm-text {
+  color: var(--text-primary);
+  font-size: 16px;
+  line-height: 1.6;
+  text-align: center;
+  padding: 20px 0;
+}
+
+/* Delete Button */
+.delete-btn {
+  background: var(--danger-color);
+  color: var(--bg-primary);
+  border-color: var(--danger-color);
+}
+
+.delete-btn:hover {
+  background: transparent;
+  color: var(--danger-color);
+}
+
 /* Modal Footer */
 .modal-footer {
   display: flex;
@@ -1002,6 +1081,11 @@
     width: 100%;
     padding: 10px;
     font-size: 14px;
+  }
+  
+  .confirm-text {
+    font-size: 14px;
+    padding: 15px 0;
   }
 }
 

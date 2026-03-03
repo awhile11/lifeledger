@@ -15,6 +15,7 @@ function FinancialTracking() {
   const [showExpenseModal, setShowExpenseModal] = useState(false);
   const [showSavingsModal, setShowSavingsModal] = useState(false);
   const [selectedCategory, setSelectedCategory] = useState(null);
+  const [showResetConfirmModal, setShowResetConfirmModal] = useState(false);
   
   const navigate = useNavigate();
 
@@ -53,27 +54,27 @@ function FinancialTracking() {
     return `user_${userId}_${key}`;
   };
 
-  // Initialize empty expenses data
+  // Initialize empty expenses data with monthly tracking
   const [expensesData, setExpensesData] = useState(() => {
+    // Get current month and year for expiration tracking
+    const now = new Date();
+    const currentMonth = now.getMonth();
+    const currentYear = now.getFullYear();
+    
     return {
       savings: {
         items: [],
-        total: 0
+        total: 0,
+        history: [] // Permanent savings history
       },
-      food: { items: [], total: 0 },
-      transport: { items: [], total: 0 },
-      entertainment: { items: [], total: 0 },
-      home: { items: [], total: 0 },
-      shopping: { items: [], total: 0 },
-      healthcare: { items: [], total: 0 },
-      education: { items: [], total: 0 },
-      utilities: { items: [], total: 0 },
-      other: { items: [], total: 0 },
-      overallSpending: 0,
-      monthlyData: {
-        Jan: 0, Feb: 0, Mar: 0, Apr: 0, May: 0,
-        Jun: 0, Jul: 0, Aug: 0, Sep: 0, Oct: 0, Nov: 0, Dec: 0
-      }
+      monthlyExpenses: {
+        // Each month's data will be stored under a key like "Jan-2024"
+      },
+      lastReset: {
+        month: currentMonth,
+        year: currentYear
+      },
+      overallSpending: 0
     };
   });
 
@@ -82,8 +83,65 @@ function FinancialTracking() {
     if (user) {
       const financeKey = getUserKey(user.uid, 'financialData');
       const savedData = localStorage.getItem(financeKey);
+      
       if (savedData) {
-        setExpensesData(JSON.parse(savedData));
+        const parsed = JSON.parse(savedData);
+        
+        // Check if we need to reset expenses for the new month
+        const now = new Date();
+        const currentMonth = now.getMonth();
+        const currentYear = now.getFullYear();
+        
+        if (parsed.lastReset) {
+          // If it's a new month, reset expenses but keep savings
+          if (parsed.lastReset.month !== currentMonth || parsed.lastReset.year !== currentYear) {
+            // Archive old month's data before resetting
+            const lastMonthKey = `${months[parsed.lastReset.month]}-${parsed.lastReset.year}`;
+            const archivedData = {};
+            
+            // Archive all category data from the previous month
+            categories.forEach(cat => {
+              const categoryKey = cat.name.toLowerCase();
+              if (parsed[categoryKey]) {
+                archivedData[categoryKey] = parsed[categoryKey];
+              }
+            });
+            
+            // Save archived data to monthlyExpenses
+            const updatedData = {
+              ...parsed,
+              monthlyExpenses: {
+                ...parsed.monthlyExpenses,
+                [lastMonthKey]: archivedData
+              },
+              // Reset all category data
+              food: { items: [], total: 0 },
+              transport: { items: [], total: 0 },
+              entertainment: { items: [], total: 0 },
+              home: { items: [], total: 0 },
+              shopping: { items: [], total: 0 },
+              healthcare: { items: [], total: 0 },
+              education: { items: [], total: 0 },
+              utilities: { items: [], total: 0 },
+              other: { items: [], total: 0 },
+              overallSpending: 0,
+              monthlyData: {
+                Jan: 0, Feb: 0, Mar: 0, Apr: 0, May: 0,
+                Jun: 0, Jul: 0, Aug: 0, Sep: 0, Oct: 0, Nov: 0, Dec: 0
+              },
+              lastReset: {
+                month: currentMonth,
+                year: currentYear
+              }
+            };
+            
+            setExpensesData(updatedData);
+          } else {
+            setExpensesData(parsed);
+          }
+        } else {
+          setExpensesData(parsed);
+        }
       }
     }
   }, [user]);
@@ -126,6 +184,8 @@ function FinancialTracking() {
       navigate('/activity');
     } else if (tab === 'financial') {
       navigate('/financial');
+    } else if (tab === 'health') {
+      navigate('/health');
     }
   };
 
@@ -203,7 +263,7 @@ function FinancialTracking() {
 
       // Update monthly data
       const itemMonth = itemToRemove.month || selectedMonth;
-      const newMonthlyTotal = (prev.monthlyData[itemMonth] || 0) - itemToRemove.amount;
+      const newMonthlyTotal = (prev.monthlyData?.[itemMonth] || 0) - itemToRemove.amount;
 
       return {
         ...prev,
@@ -213,7 +273,7 @@ function FinancialTracking() {
         },
         overallSpending: newOverallSpending,
         monthlyData: {
-          ...prev.monthlyData,
+          ...(prev.monthlyData || {}),
           [itemMonth]: newMonthlyTotal
         }
       };
@@ -229,12 +289,13 @@ function FinancialTracking() {
         // Get existing items for the category
         const existingItems = prev[categoryKey]?.items || [];
         
-        // Add new item with unique ID
+        // Add new item with unique ID and timestamp
         const newItem = { 
           id: Date.now(), 
           name: newExpense.name, 
           amount: cost, 
-          month: selectedMonth 
+          month: selectedMonth,
+          timestamp: new Date().toISOString()
         };
         
         const updatedItems = [...existingItems, newItem];
@@ -246,7 +307,7 @@ function FinancialTracking() {
         const newOverallSpending = prev.overallSpending + cost;
 
         // Update monthly data for selected month
-        const newMonthlyTotal = (prev.monthlyData[selectedMonth] || 0) + cost;
+        const newMonthlyTotal = (prev.monthlyData?.[selectedMonth] || 0) + cost;
 
         return {
           ...prev,
@@ -256,7 +317,7 @@ function FinancialTracking() {
           },
           overallSpending: newOverallSpending,
           monthlyData: {
-            ...prev.monthlyData,
+            ...(prev.monthlyData || {}),
             [selectedMonth]: newMonthlyTotal
           }
         };
@@ -270,26 +331,40 @@ function FinancialTracking() {
     if (newSavings.amount) {
       const amount = parseFloat(newSavings.amount);
       const date = `${newSavings.month} ${newSavings.day}`;
+      const currentYear = new Date().getFullYear();
       
       setExpensesData(prev => {
-        // Add new savings item with unique ID
+        // Add new savings item with unique ID and permanent storage
         const newItem = { 
           id: Date.now(), 
           name: date, 
           amount: amount, 
-          month: newSavings.month 
+          month: newSavings.month,
+          year: currentYear,
+          timestamp: new Date().toISOString()
         };
         
-        const updatedItems = [...prev.savings.items, newItem];
+        const updatedItems = [...(prev.savings?.items || []), newItem];
 
         // Calculate new savings total
-        const newSavingsTotal = prev.savings.total + amount;
+        const newSavingsTotal = (prev.savings?.total || 0) + amount;
+
+        // Add to permanent history
+        const updatedHistory = [...(prev.savings?.history || []), {
+          id: Date.now(),
+          date,
+          amount,
+          month: newSavings.month,
+          year: currentYear,
+          timestamp: new Date().toISOString()
+        }];
 
         return {
           ...prev,
           savings: {
             items: updatedItems,
-            total: newSavingsTotal
+            total: newSavingsTotal,
+            history: updatedHistory
           }
         };
       });
@@ -304,34 +379,48 @@ function FinancialTracking() {
     
     setExpensesData(prev => {
       // Find the item to remove
-      const itemToRemove = prev.savings.items.find(item => item.id === itemId);
+      const itemToRemove = prev.savings?.items.find(item => item.id === itemId);
       if (!itemToRemove) return prev;
 
-      // Filter out the item
+      // Filter out the item from current items
       const updatedItems = prev.savings.items.filter(item => item.id !== itemId);
       
       // Calculate new savings total
       const newSavingsTotal = prev.savings.total - itemToRemove.amount;
 
+      // Remove from history as well
+      const updatedHistory = prev.savings.history.filter(item => item.id !== itemId);
+
       return {
         ...prev,
         savings: {
           items: updatedItems,
-          total: newSavingsTotal
+          total: newSavingsTotal,
+          history: updatedHistory
         }
       };
     });
   };
 
   const handleResetSavings = () => {
+    setShowResetConfirmModal(true);
+  };
+
+  const confirmResetSavings = () => {
     setExpensesData(prev => ({
       ...prev,
       savings: {
         items: [],
-        total: 0
+        total: 0,
+        history: prev.savings?.history || [] // Keep history for reference
       }
     }));
+    setShowResetConfirmModal(false);
     closeSavingsModal();
+  };
+
+  const cancelResetSavings = () => {
+    setShowResetConfirmModal(false);
   };
 
   // Calculate top category and item for selected month
@@ -373,8 +462,8 @@ function FinancialTracking() {
     
     if (!previousMonth) return { percentage: 0, isMore: true };
     
-    const currentAmount = expensesData.monthlyData[selectedMonth] || 0;
-    const previousAmount = expensesData.monthlyData[previousMonth] || 0;
+    const currentAmount = expensesData.monthlyData?.[selectedMonth] || 0;
+    const previousAmount = expensesData.monthlyData?.[previousMonth] || 0;
     
     if (previousAmount === 0) return { percentage: 0, isMore: true };
     
@@ -387,7 +476,7 @@ function FinancialTracking() {
 
   // Get max monthly amount for graph scaling
   const getMaxMonthlyAmount = () => {
-    const monthlyValues = Object.values(expensesData.monthlyData);
+    const monthlyValues = Object.values(expensesData.monthlyData || {});
     return Math.max(...monthlyValues, 100); // Minimum 100 to avoid division by zero
   };
 
@@ -403,6 +492,16 @@ function FinancialTracking() {
     return catData?.total || 0;
   };
 
+  // Get total savings for display (permanent)
+  const getTotalSavings = () => {
+    return expensesData.savings?.total || 0;
+  };
+
+  // Get savings items for display
+  const getSavingsItems = () => {
+    return expensesData.savings?.items || [];
+  };
+
   if (loading) {
     return (
       <div className="financial-container">
@@ -415,6 +514,8 @@ function FinancialTracking() {
   const topItem = getTopItemForMonth(topCategory);
   const percentageChange = getPercentageChange();
   const maxAmount = getMaxMonthlyAmount();
+  const totalSavings = getTotalSavings();
+  const savingsItems = getSavingsItems();
 
   return (
     <div className="financial-container">
@@ -446,6 +547,14 @@ function FinancialTracking() {
             onClick={() => handleNavigation('financial')}
           >
             <span className="menu-text">Financial Tracking</span>
+            <span className="menu-indicator"></span>
+          </div>
+
+          <div 
+            className={`menu-item ${activeTab === 'health' ? 'active' : ''}`}
+            onClick={() => handleNavigation('health')}
+          >
+            <span className="menu-text">Health & Fitness</span>
             <span className="menu-indicator"></span>
           </div>
         </div>
@@ -683,11 +792,11 @@ function FinancialTracking() {
               </div>
             </div>
 
-            {/* Savings Card - Right Side */}
+            {/* Savings Card - Right Side (Permanent) */}
             <div className="savings-card" onClick={openSavingsModal}>
               <h2 className="savings-title">Savings</h2>
               <div className="savings-items">
-                {expensesData.savings.items.map((item) => (
+                {savingsItems.map((item) => (
                   <div key={item.id} className="savings-item">
                     <span className="savings-item-name">- {item.name}</span>
                     <span className="savings-item-amount">R{item.amount}</span>
@@ -700,11 +809,11 @@ function FinancialTracking() {
                     </span>
                   </div>
                 ))}
-                {expensesData.savings.items.length === 0 && (
+                {savingsItems.length === 0 && (
                   <div className="savings-empty">Click to add savings</div>
                 )}
               </div>
-              <div className="savings-total">R{expensesData.savings.total}</div>
+              <div className="savings-total">R{totalSavings}</div>
             </div>
           </div>
 
@@ -713,12 +822,12 @@ function FinancialTracking() {
             {/* Overall Spending Card with Graph */}
             <div className="overall-spending-card">
               <h2 className="overall-title">Overall Spending</h2>
-              <div className="overall-amount">R{expensesData.overallSpending.toLocaleString()}</div>
+              <div className="overall-amount">R{expensesData.overallSpending?.toLocaleString() || 0}</div>
               
               {/* Month Graph */}
               <div className="month-graph">
                 {months.map(month => {
-                  const amount = expensesData.monthlyData[month] || 0;
+                  const amount = expensesData.monthlyData?.[month] || 0;
                   const barHeight = amount > 0 ? (amount / maxAmount) * 150 : 4;
                   
                   return (
@@ -743,7 +852,7 @@ function FinancialTracking() {
               {/* Summary Section */}
               <div className="graph-summary">
                 <p className="summary-text">
-                  This Month you spent <span className="highlight">R{expensesData.monthlyData[selectedMonth]?.toLocaleString() || 0}</span>
+                  This Month you spent <span className="highlight">R{expensesData.monthlyData?.[selectedMonth]?.toLocaleString() || 0}</span>
                   {topCategory.total > 0 && (
                     <>
                       {' '}top category spent on is <span className="highlight">{topCategory.name}</span>
@@ -828,7 +937,7 @@ function FinancialTracking() {
       {showSavingsModal && (
         <div className="modal-overlay" onClick={closeSavingsModal}>
           <div className="modal-content savings-modal" onClick={(e) => e.stopPropagation()}>
-            <h3 className="modal-title">Add Savings |</h3>
+            <h3 className="modal-title">Add Savings</h3>
             
             <div className="modal-body">
               <div className="savings-input-group">
@@ -871,11 +980,14 @@ function FinancialTracking() {
                   autoFocus
                 />
               </div>
+              
+              <div className="savings-info">
+              </div>
             </div>
 
             <div className="modal-footer savings-footer">
               <button className="modal-btn reset-btn" onClick={handleResetSavings}>
-                Reset All
+                Reset All Savings
               </button>
               <button 
                 className="modal-btn add-btn" 
@@ -883,6 +995,30 @@ function FinancialTracking() {
                 disabled={!newSavings.amount}
               >
                 Add
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Reset Confirmation Modal */}
+      {showResetConfirmModal && (
+        <div className="modal-overlay" onClick={cancelResetSavings}>
+          <div className="modal-content confirm-modal" onClick={(e) => e.stopPropagation()}>
+            <h3 className="modal-title">Confirm Reset |</h3>
+            
+            <div className="modal-body">
+              <p className="confirm-text">
+                Are you sure you want to reset all savings? This action cannot be undone.
+              </p>
+            </div>
+
+            <div className="modal-footer">
+              <button className="modal-btn exit-btn" onClick={cancelResetSavings}>
+                Cancel
+              </button>
+              <button className="modal-btn delete-btn" onClick={confirmResetSavings}>
+                Reset All
               </button>
             </div>
           </div>

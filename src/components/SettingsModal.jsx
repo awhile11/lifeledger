@@ -8,6 +8,7 @@ function SettingsModal({ isOpen, onClose, user }) {
   const [name, setName] = useState('');
   const [surname, setSurname] = useState('');
   const [email, setEmail] = useState('');
+  const [gender, setGender] = useState('male'); // 'male' or 'female'
   const [loading, setLoading] = useState(false);
   const [success, setSuccess] = useState('');
   const [error, setError] = useState('');
@@ -20,6 +21,12 @@ function SettingsModal({ isOpen, onClose, user }) {
       setName(nameParts[0] || '');
       setSurname(nameParts.slice(1).join(' ') || '');
       setEmail(user.email || '');
+      
+      // Load saved gender from localStorage
+      const savedGender = localStorage.getItem(`user_${user.uid}_gender`);
+      if (savedGender) {
+        setGender(savedGender);
+      }
     }
   }, [user]);
 
@@ -32,6 +39,12 @@ function SettingsModal({ isOpen, onClose, user }) {
       await updateProfile(auth.currentUser, {
         displayName: `${name} ${surname}`.trim()
       });
+      
+      // Save gender to localStorage
+      if (user) {
+        localStorage.setItem(`user_${user.uid}_gender`, gender);
+      }
+      
       setSuccess('Profile updated successfully!');
       setTimeout(() => {
         setSuccess('');
@@ -102,6 +115,43 @@ function SettingsModal({ isOpen, onClose, user }) {
               <small className="input-note">Email cannot be changed</small>
             </div>
 
+            {/* Gender Selection */}
+            <div className="form-group">
+              <label>Gender</label>
+              <div className="gender-radio-group">
+                <label className={`gender-radio ${gender === 'male' ? 'selected' : ''}`}>
+                  <input
+                    type="radio"
+                    name="gender"
+                    value="male"
+                    checked={gender === 'male'}
+                    onChange={(e) => setGender(e.target.value)}
+                  />
+                  <span className="radio-custom"></span>
+                  <span className="gender-label">
+  
+                    Male
+                  </span>
+                </label>
+                
+                <label className={`gender-radio ${gender === 'female' ? 'selected' : ''}`}>
+                  <input
+                    type="radio"
+                    name="gender"
+                    value="female"
+                    checked={gender === 'female'}
+                    onChange={(e) => setGender(e.target.value)}
+                  />
+                  <span className="radio-custom"></span>
+                  <span className="gender-label">
+
+                    Female
+                  </span>
+                </label>
+              </div>
+              <small className="input-note">Used for health calculations (water intake, calories, etc.)</small>
+            </div>
+
             <button 
               className="save-profile-btn"
               onClick={handleSaveProfile}
@@ -125,7 +175,7 @@ function SettingsModal({ isOpen, onClose, user }) {
                 />
                 <span className="radio-custom"></span>
                 <span className="theme-label">
-                  Light Mode
+                   Light Mode
                 </span>
               </label>
               
@@ -139,7 +189,7 @@ function SettingsModal({ isOpen, onClose, user }) {
                 />
                 <span className="radio-custom"></span>
                 <span className="theme-label">
-                  Dark Mode
+                   Dark Mode
                 </span>
               </label>
             </div>

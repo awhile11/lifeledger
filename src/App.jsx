@@ -7,6 +7,7 @@ import RegisterPage from './components/RegisterPage';
 import Dashboard from './components/Dashboard';
 import ActivityTracking from './components/ActivityTracking';
 import FinancialTracking from './components/FinancialTracking';
+import HealthFitness from './components/HealthFitness';
 
 function App() {
   return (
@@ -20,6 +21,7 @@ function App() {
             <Route path="/dashboard" element={<Dashboard />} />
             <Route path="/activity" element={<ActivityTracking />} />
             <Route path="/financial" element={<FinancialTracking />} />
+            <Route path="/health" element={<HealthFitness />} />
           </Routes>
         </div>
       </ThemeProvider>

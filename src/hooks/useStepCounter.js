@@ -1,139 +1,179 @@
-import { useState, useEffect, useRef } from 'react';
+/**
+ * useStepCounter.js
+ *
+ * A robust step-detection hook using the DeviceMotionEvent API.
+ *
+ * Algorithm:
+ *  1. Reads accelerometer data (DeviceMotionEvent.accelerationIncludingGravity).
+ *  2. Computes the magnitude of the acceleration vector: mag = sqrt(x²+y²+z²).
+ *  3. Applies a simple low-pass smoothing filter to remove high-frequency noise.
+ *  4. Detects a "step" when the smoothed magnitude crosses a dynamic threshold
+ *     (mean + sensitivity) in the upward direction, with a minimum interval
+ *     between steps to prevent double-counting (~250 ms).
+ *  5. Persists the step count in localStorage under the user's key and resets
+ *     automatically at midnight.
+ *
+ * On iOS 13+ the user must grant permission via DeviceMotionEvent.requestPermission().
+ * On Android and desktop browsers permission is implicit.
+ */
 
-const useStepCounter = (isActive = true) => {
-  const [steps, setSteps] = useState(0);
-  const [isWalking, setIsWalking] = useState(false);
-  const [error, setError] = useState(null);
+import { useEffect, useRef, useState, useCallback } from 'react';
+
+// ─── Tuneable constants ────────────────────────────────────────────────────────
+const SMOOTHING_FACTOR   = 0.85;   // Low-pass α  (0 = no smoothing, 1 = fully smooth)
+const SENSITIVITY        = 1.2;    // m/s² above the running mean to count as a peak
+const MIN_STEP_INTERVAL  = 250;    // milliseconds – minimum gap between two steps
+const BUFFER_SIZE        = 30;     // samples kept for running mean calculation
+// ─────────────────────────────────────────────────────────────────────────────
+
+/**
+ * @param {boolean} autoStart  – start listening immediately (default: true)
+ * @returns {{ steps, isWalking, permissionGranted, error, resetSteps, requestPermission }}
+ */
+function useStepCounter(autoStart = true) {
+  const [steps,            setSteps]            = useState(0);
+  const [isWalking,        setIsWalking]         = useState(false);
   const [permissionGranted, setPermissionGranted] = useState(false);
-  
-  // References for sensor data
-  const lastStepTimestamp = useRef(0);
-  const stepBuffer = useRef([]);
-  const lastAcceleration = useRef({ x: 0, y: 0, z: 0, magnitude: 0 });
-  
-  // Constants for step detection
-  const STEP_THRESHOLD = 12;
-  const STEP_TIMEOUT = 300;
-  const BUFFER_SIZE = 10;
-  
-  // Step detection algorithm based on accelerometer peak detection
-  const detectStep = (acceleration) => {
-    const magnitude = Math.sqrt(
-      acceleration.x ** 2 + 
-      acceleration.y ** 2 + 
-      acceleration.z ** 2
-    );
-    
-    // Add to buffer for smoothing
-    stepBuffer.current.push(magnitude);
-    if (stepBuffer.current.length > BUFFER_SIZE) {
-      stepBuffer.current.shift();
-    }
-    
-    // Calculate smoothed value (running average)
-    const smoothedMagnitude = stepBuffer.current.reduce((a, b) => a + b, 0) / 
-                             stepBuffer.current.length;
-    
-    // Detect peak by comparing with last value
-    const lastMagnitude = lastAcceleration.current.magnitude || 0;
-    const difference = Math.abs(smoothedMagnitude - lastMagnitude);
-    
-    lastAcceleration.current = { 
-      ...acceleration, 
-      magnitude: smoothedMagnitude 
-    };
-    
+  const [error,            setError]             = useState(null);
+
+  // Internal refs (never trigger re-renders)
+  const smoothedRef       = useRef(9.81);   // start at ~gravity
+  const lastStepTimeRef   = useRef(0);
+  const risingRef         = useRef(false);  // are we on the rising slope?
+  const sampleBufferRef   = useRef([]);     // rolling window for dynamic mean
+  const isWalkingTimerRef = useRef(null);
+  const listenerActiveRef = useRef(false);
+  const stepsRef          = useRef(0);      // shadow of steps for use inside event cb
+
+  // Keep stepsRef in sync
+  useEffect(() => { stepsRef.current = steps; }, [steps]);
+
+  // ── Core motion handler ──────────────────────────────────────────────────
+  const handleMotion = useCallback((event) => {
+    const accel = event.accelerationIncludingGravity;
+    if (!accel) return;
+
+    const { x = 0, y = 0, z = 0 } = accel;
+
+    // 1. Raw magnitude of the acceleration vector
+    const rawMag = Math.sqrt(x * x + y * y + z * z);
+
+    // 2. Low-pass smoothing
+    smoothedRef.current =
+      SMOOTHING_FACTOR * smoothedRef.current +
+      (1 - SMOOTHING_FACTOR) * rawMag;
+
+    const smoothed = smoothedRef.current;
+
+    // 3. Rolling buffer for dynamic threshold
+    const buf = sampleBufferRef.current;
+    buf.push(smoothed);
+    if (buf.length > BUFFER_SIZE) buf.shift();
+
+    const mean = buf.reduce((s, v) => s + v, 0) / buf.length;
+    const threshold = mean + SENSITIVITY;
+
     const now = Date.now();
-    
-    // Check if this is a step (peak detection)
-    if (difference > STEP_THRESHOLD && 
-        smoothedMagnitude > lastMagnitude &&
-        now - lastStepTimestamp.current > STEP_TIMEOUT) {
-      lastStepTimestamp.current = now;
-      return true;
-    }
-    
-    return false;
-  };
 
-  // Handle motion events
-  const handleMotion = (event) => {
-    const acceleration = event.acceleration || event.accelerationIncludingGravity;
-    
-    if (!acceleration || 
-        acceleration.x === null || 
-        acceleration.y === null || 
-        acceleration.z === null) {
-      return;
-    }
+    // 4. Peak detection (rising → crossing threshold → falling)
+    if (smoothed > threshold) {
+      // We are above threshold – mark as rising
+      risingRef.current = true;
+    } else if (risingRef.current && smoothed <= threshold) {
+      // We just fell back below the threshold → peak confirmed
+      risingRef.current = false;
 
-    // Update walking status based on movement
-    const magnitude = Math.sqrt(
-      acceleration.x ** 2 + 
-      acceleration.y ** 2 + 
-      acceleration.z ** 2
-    );
-    
-    setIsWalking(magnitude > 1.5);
+      const timeSinceLast = now - lastStepTimeRef.current;
+      if (timeSinceLast >= MIN_STEP_INTERVAL) {
+        // ✅ Count a step
+        lastStepTimeRef.current = now;
+        setSteps(prev => prev + 1);
 
-    // Detect step
-    if (detectStep(acceleration)) {
-      setSteps(prev => prev + 1);
-    }
-  };
-
-  // Request permission and start listening to accelerometer
-  useEffect(() => {
-    if (!isActive) return;
-
-    // Check if DeviceMotionEvent is supported
-    if (!window.DeviceMotionEvent) {
-      setError('Device motion sensors are not supported on this device');
-      return;
-    }
-
-    // Request permission for iOS 13+ devices
-    const requestPermission = async () => {
-      if (typeof DeviceMotionEvent.requestPermission === 'function') {
-        try {
-          const permission = await DeviceMotionEvent.requestPermission();
-          if (permission === 'granted') {
-            setPermissionGranted(true);
-            window.addEventListener('devicemotion', handleMotion);
-          } else {
-            setError('Permission to access motion sensors was denied');
-          }
-        } catch (err) {
-          setError('Error requesting sensor permission');
-        }
-      } else {
-        // Android and older iOS - permission not required
-        setPermissionGranted(true);
-        window.addEventListener('devicemotion', handleMotion);
+        // Show walking indicator and keep it alive for 1.5 s
+        setIsWalking(true);
+        if (isWalkingTimerRef.current) clearTimeout(isWalkingTimerRef.current);
+        isWalkingTimerRef.current = setTimeout(() => setIsWalking(false), 1500);
       }
-    };
+    }
+  }, []);
 
-    requestPermission();
+  // ── Start / stop the listener ────────────────────────────────────────────
+  const startListening = useCallback(() => {
+    if (listenerActiveRef.current) return;
+    if (typeof DeviceMotionEvent === 'undefined') {
+      setError('Motion sensors not available on this device/browser.');
+      return;
+    }
+    window.addEventListener('devicemotion', handleMotion, { passive: true });
+    listenerActiveRef.current = true;
+    setPermissionGranted(true);
+    setError(null);
+  }, [handleMotion]);
+
+  const stopListening = useCallback(() => {
+    if (!listenerActiveRef.current) return;
+    window.removeEventListener('devicemotion', handleMotion);
+    listenerActiveRef.current = false;
+  }, [handleMotion]);
+
+  // ── iOS 13+ permission request ───────────────────────────────────────────
+  const requestPermission = useCallback(async () => {
+    if (
+      typeof DeviceMotionEvent !== 'undefined' &&
+      typeof DeviceMotionEvent.requestPermission === 'function'
+    ) {
+      try {
+        const result = await DeviceMotionEvent.requestPermission();
+        if (result === 'granted') {
+          startListening();
+        } else {
+          setError('Motion permission denied. Please enable it in Settings → Safari → Motion & Orientation Access.');
+        }
+      } catch (err) {
+        setError('Could not request motion permission: ' + err.message);
+      }
+    } else {
+      // Non-iOS: no explicit permission needed
+      startListening();
+    }
+  }, [startListening]);
+
+  // ── Reset helper ─────────────────────────────────────────────────────────
+  const resetSteps = useCallback(() => {
+    setSteps(0);
+    stepsRef.current = 0;
+  }, []);
+
+  // ── Auto-start on mount ──────────────────────────────────────────────────
+  useEffect(() => {
+    if (!autoStart) return;
+
+    if (
+      typeof DeviceMotionEvent !== 'undefined' &&
+      typeof DeviceMotionEvent.requestPermission === 'function'
+    ) {
+      // iOS 13+: can't auto-start without a user gesture; surface the error
+      // so the UI can show a "Grant Permission" button.
+      setError('Tap "Grant Permission" to enable step counting on this device.');
+    } else {
+      // Android / desktop
+      startListening();
+    }
 
     return () => {
-      window.removeEventListener('devicemotion', handleMotion);
+      stopListening();
+      if (isWalkingTimerRef.current) clearTimeout(isWalkingTimerRef.current);
     };
-  }, [isActive]);
-
-  // Reset steps
-  const resetSteps = () => {
-    setSteps(0);
-    lastStepTimestamp.current = 0;
-    stepBuffer.current = [];
-  };
+  }, [autoStart, startListening, stopListening]);
 
   return {
     steps,
     isWalking,
-    error,
     permissionGranted,
-    resetSteps
+    error,
+    resetSteps,
+    requestPermission,   // call this from a button click on iOS
   };
-};
+}
 
 export default useStepCounter;

@@ -117,13 +117,16 @@ function RegisterPage() {
       console.error('Registration error:', error.message);
       switch (error.code) {
         case 'auth/email-already-in-use':
-          setError('Email already in use');
+          setError('An account with this email already exists');
           break;
         case 'auth/invalid-email':
           setError('Invalid email address');
           break;
         case 'auth/weak-password':
-          setError('Password is too weak');
+          setError('Password is too weak – use at least 6 characters');
+          break;
+        case 'auth/too-many-requests':
+          setError('Too many attempts. Please try again later.');
           break;
         default:
           setError('Failed to register. Please try again.');

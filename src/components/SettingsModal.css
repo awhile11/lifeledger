@@ -1,403 +1,327 @@
-/* Settings Modal Styles */
 .settings-modal-overlay {
   position: fixed;
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  background: rgba(0, 0, 0, 0.7);
+  inset: 0;
+  background: rgba(0, 0, 0, 0.85);
   display: flex;
   align-items: center;
   justify-content: center;
   z-index: 2000;
-  backdrop-filter: blur(5px);
+  backdrop-filter: blur(10px);
 }
 
 .settings-modal-content {
   background: var(--bg-primary);
-  border: 2px solid var(--accent-color);
-  border-radius: 20px;
+  border: 1px solid rgba(34, 211, 238, 0.25);
+  border-radius: 18px;
   width: 90%;
   max-width: 500px;
-  max-height: 80vh;
+  max-height: 82vh;
   overflow-y: auto;
-  box-shadow: 0 20px 40px rgba(0, 0, 0, 0.3);
-  animation: modalSlideIn 0.3s ease;
+  box-shadow: 0 25px 60px rgba(0,0,0,0.5), 0 0 40px rgba(34,211,238,0.05);
+  animation: modalSlideIn 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+  position: relative;
+  overflow: hidden;
+  overflow-y: auto;
+}
+
+/* Top accent line */
+.settings-modal-content::before {
+  content: '';
+  position: absolute;
+  top: 0; left: 0; right: 0;
+  height: 2px;
+  background: linear-gradient(90deg, transparent, var(--accent-color), transparent);
+  z-index: 1;
 }
 
 .settings-modal-header {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding: 20px 25px;
+  padding: 22px 26px;
   border-bottom: 1px solid var(--border-color);
+  position: sticky;
+  top: 0;
+  background: var(--bg-primary);
+  z-index: 10;
 }
 
 .settings-modal-header h2 {
   color: var(--text-primary);
   margin: 0;
-  font-size: 24px;
+  font-size: 18px;
   font-family: 'Audiowide', cursive;
+  letter-spacing: 2px;
 }
 
 .close-btn {
   background: none;
-  border: none;
+  border: 1px solid rgba(34, 211, 238, 0.15);
   color: var(--text-secondary);
-  font-size: 28px;
+  font-size: 18px;
   cursor: pointer;
-  padding: 0;
-  width: 40px;
-  height: 40px;
+  width: 36px;
+  height: 36px;
   display: flex;
   align-items: center;
   justify-content: center;
-  border-radius: 50%;
+  border-radius: 8px;
   transition: all 0.2s;
 }
 
 .close-btn:hover {
-  background: var(--hover-bg);
-  color: var(--text-primary);
+  background: rgba(255, 87, 87, 0.08);
+  border-color: var(--danger-color);
+  color: var(--danger-color);
 }
 
-.settings-modal-body {
-  padding: 25px;
-}
+.settings-modal-body { padding: 24px 26px; }
 
 .settings-section {
-  margin-bottom: 30px;
-  padding-bottom: 20px;
+  margin-bottom: 28px;
+  padding-bottom: 22px;
   border-bottom: 1px solid var(--border-color);
 }
 
-.settings-section:last-child {
-  border-bottom: none;
-  margin-bottom: 0;
-  padding-bottom: 0;
-}
+.settings-section:last-child { border-bottom: none; margin-bottom: 0; padding-bottom: 0; }
 
 .settings-section h3 {
   color: var(--accent-color);
-  margin: 0 0 15px 0;
-  font-size: 18px;
+  margin: 0 0 16px 0;
+  font-size: 11px;
   font-family: 'Audiowide', cursive;
+  letter-spacing: 2px;
+  text-transform: uppercase;
 }
 
-.form-group {
-  margin-bottom: 15px;
-}
+.form-group { margin-bottom: 14px; }
 
 .form-group label {
   display: block;
   color: var(--text-secondary);
-  margin-bottom: 5px;
-  font-size: 14px;
+  margin-bottom: 6px;
+  font-size: 11px;
   font-family: 'Audiowide', cursive;
+  letter-spacing: 1px;
+  text-transform: uppercase;
 }
 
 .form-group input {
   width: 100%;
-  padding: 12px 15px;
+  padding: 12px 14px;
   background: var(--bg-secondary);
-  border: 1px solid var(--border-color);
+  border: 1px solid rgba(34, 211, 238, 0.15);
   border-radius: 8px;
   color: var(--text-primary);
   font-family: 'Audiowide', cursive;
-  font-size: 14px;
+  font-size: 13px;
   outline: none;
   transition: all 0.2s;
 }
 
 .form-group input:focus {
-  border-color: var(--accent-color);
-  box-shadow: 0 0 10px rgba(34, 211, 238, 0.2);
+  border-color: rgba(34, 211, 238, 0.5);
+  box-shadow: 0 0 0 3px rgba(34, 211, 238, 0.07);
 }
 
-.form-group input.disabled-input {
-  opacity: 0.6;
-  cursor: not-allowed;
-  background: var(--bg-secondary);
-}
+.form-group input.disabled-input { opacity: 0.5; cursor: not-allowed; }
 
 .input-note {
   display: block;
   color: var(--text-secondary);
-  font-size: 12px;
+  font-size: 10px;
   margin-top: 5px;
   font-style: italic;
   font-family: 'Audiowide', cursive;
+  opacity: 0.7;
 }
 
-/* Gender Radio Group */
-.gender-radio-group {
-  display: flex;
-  gap: 15px;
-  margin-top: 5px;
-}
+.gender-radio-group { display: flex; gap: 12px; margin-top: 6px; }
 
 .gender-radio {
   display: flex;
   align-items: center;
   gap: 10px;
-  padding: 10px 15px;
+  padding: 10px 14px;
   background: var(--bg-secondary);
-  border: 2px solid transparent;
+  border: 1px solid transparent;
   border-radius: 10px;
   cursor: pointer;
   transition: all 0.2s ease;
   flex: 1;
 }
 
-.gender-radio:hover {
-  background: var(--hover-bg);
-  transform: translateY(-2px);
-}
+.gender-radio:hover { background: var(--hover-bg); transform: translateY(-1px); }
 
 .gender-radio.selected {
-  border-color: var(--accent-color);
-  background: rgba(34, 211, 238, 0.1);
+  border-color: rgba(34, 211, 238, 0.4);
+  background: rgba(34, 211, 238, 0.06);
 }
 
-.gender-radio input[type="radio"] {
-  position: absolute;
-  opacity: 0;
-  width: 0;
-  height: 0;
-}
+.gender-radio input[type="radio"] { position: absolute; opacity: 0; width: 0; height: 0; }
 
 .gender-radio .radio-custom {
-  width: 20px;
-  height: 20px;
+  width: 18px; height: 18px;
   border: 2px solid var(--text-secondary);
   border-radius: 50%;
   position: relative;
   transition: all 0.2s ease;
+  flex-shrink: 0;
 }
 
-.gender-radio.selected .radio-custom {
-  border-color: var(--accent-color);
-}
+.gender-radio.selected .radio-custom { border-color: var(--accent-color); }
 
 .gender-radio.selected .radio-custom::after {
   content: '';
   position: absolute;
-  top: 50%;
-  left: 50%;
+  top: 50%; left: 50%;
   transform: translate(-50%, -50%);
-  width: 10px;
-  height: 10px;
+  width: 8px; height: 8px;
   background: var(--accent-color);
   border-radius: 50%;
+  box-shadow: 0 0 6px var(--accent-color);
 }
 
-.gender-label {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  color: var(--text-primary);
-  font-size: 15px;
-  font-family: 'Audiowide', cursive;
-}
-
-.gender-icon {
-  font-size: 18px;
-}
+.gender-label { display: flex; align-items: center; gap: 8px; color: var(--text-primary); font-size: 13px; font-family: 'Audiowide', cursive; }
+.gender-icon { font-size: 16px; }
 
 .save-profile-btn {
   width: 100%;
   padding: 12px;
-  background: var(--accent-color);
+  background: linear-gradient(135deg, var(--accent-color), #0891b2);
   color: var(--bg-primary);
-  border: 2px solid var(--accent-color);
+  border: none;
   border-radius: 8px;
   font-family: 'Audiowide', cursive;
-  font-size: 16px;
+  font-size: 12px;
+  font-weight: bold;
   cursor: pointer;
   transition: all 0.3s;
   margin-top: 10px;
+  letter-spacing: 1.5px;
+  text-transform: uppercase;
+  box-shadow: 0 4px 15px rgba(34, 211, 238, 0.2);
 }
 
 .save-profile-btn:hover:not(:disabled) {
-  background: transparent;
-  color: var(--accent-color);
   transform: translateY(-2px);
+  box-shadow: 0 8px 25px rgba(34, 211, 238, 0.3);
 }
 
-.save-profile-btn:disabled {
-  opacity: 0.5;
-  cursor: not-allowed;
-}
+.save-profile-btn:disabled { opacity: 0.4; cursor: not-allowed; }
 
-/* Radio Button Theme Selector */
-.theme-radio-group {
-  display: flex;
-  flex-direction: column;
-  gap: 12px;
-  padding: 5px 0;
-}
+.theme-radio-group { display: flex; flex-direction: column; gap: 10px; padding: 4px 0; }
 
 .theme-radio {
   display: flex;
   align-items: center;
   gap: 12px;
-  padding: 12px 15px;
+  padding: 12px 14px;
   background: var(--bg-secondary);
-  border: 2px solid transparent;
-  border-radius: 12px;
+  border: 1px solid transparent;
+  border-radius: 10px;
   cursor: pointer;
   transition: all 0.2s ease;
 }
 
-.theme-radio:hover {
-  background: var(--hover-bg);
-  transform: translateX(5px);
-}
+.theme-radio:hover { background: var(--hover-bg); transform: translateX(4px); }
 
 .theme-radio.selected {
-  border-color: var(--accent-color);
-  background: var(--hover-bg);
+  border-color: rgba(34, 211, 238, 0.3);
+  background: rgba(34, 211, 238, 0.05);
 }
 
-.theme-radio input[type="radio"] {
-  position: absolute;
-  opacity: 0;
-  width: 0;
-  height: 0;
-}
+.theme-radio input[type="radio"] { position: absolute; opacity: 0; width: 0; height: 0; }
 
 .radio-custom {
-  width: 20px;
-  height: 20px;
+  width: 18px; height: 18px;
   border: 2px solid var(--text-secondary);
   border-radius: 50%;
   position: relative;
   transition: all 0.2s ease;
+  flex-shrink: 0;
 }
 
-.theme-radio.selected .radio-custom {
-  border-color: var(--accent-color);
-}
+.theme-radio.selected .radio-custom { border-color: var(--accent-color); }
 
 .theme-radio.selected .radio-custom::after {
   content: '';
   position: absolute;
-  top: 50%;
-  left: 50%;
+  top: 50%; left: 50%;
   transform: translate(-50%, -50%);
-  width: 10px;
-  height: 10px;
+  width: 8px; height: 8px;
   background: var(--accent-color);
   border-radius: 50%;
+  box-shadow: 0 0 6px var(--accent-color);
 }
 
-.theme-label {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  color: var(--text-primary);
-  font-size: 16px;
-  font-family: 'Audiowide', cursive;
-}
+.theme-label { display: flex; align-items: center; gap: 10px; color: var(--text-primary); font-size: 13px; font-family: 'Audiowide', cursive; }
+.theme-icon { font-size: 18px; }
 
-.theme-icon {
-  font-size: 20px;
-}
-
-/* Danger Button */
 .danger-btn {
   width: 100%;
-  padding: 12px;
+  padding: 11px;
   background: transparent;
   color: var(--danger-color);
-  border: 2px solid var(--danger-color);
+  border: 1px solid rgba(255, 87, 87, 0.3);
   border-radius: 8px;
   font-family: 'Audiowide', cursive;
-  font-size: 16px;
+  font-size: 12px;
   cursor: pointer;
   transition: all 0.3s;
   margin-bottom: 10px;
+  letter-spacing: 1px;
+  text-transform: uppercase;
 }
 
 .danger-btn:hover {
-  background: var(--danger-color);
-  color: var(--bg-primary);
+  background: rgba(255, 87, 87, 0.08);
+  border-color: var(--danger-color);
+  box-shadow: 0 0 15px rgba(255, 87, 87, 0.1);
 }
 
 .warning-text {
   display: block;
   color: var(--text-secondary);
-  font-size: 12px;
+  font-size: 10px;
   text-align: center;
   font-style: italic;
   font-family: 'Audiowide', cursive;
+  opacity: 0.6;
 }
 
-/* Error and Success Messages */
 .error-message {
-  background: rgba(255, 87, 87, 0.1);
-  border: 1px solid var(--danger-color);
+  background: rgba(255, 87, 87, 0.06);
+  border: 1px solid rgba(255, 87, 87, 0.3);
+  border-left: 3px solid var(--danger-color);
   color: var(--danger-color);
-  padding: 10px;
+  padding: 10px 14px;
   border-radius: 8px;
-  margin-bottom: 15px;
-  font-size: 14px;
-  text-align: center;
+  margin-bottom: 14px;
+  font-size: 11px;
   font-family: 'Audiowide', cursive;
 }
 
 .success-message {
-  background: rgba(75, 181, 67, 0.1);
-  border: 1px solid var(--success-color);
-  color: var(--success-color);
-  padding: 10px;
+  background: rgba(34, 211, 238, 0.05);
+  border: 1px solid rgba(34, 211, 238, 0.2);
+  border-left: 3px solid var(--accent-color);
+  color: var(--accent-color);
+  padding: 10px 14px;
   border-radius: 8px;
-  margin-bottom: 15px;
-  font-size: 14px;
-  text-align: center;
+  margin-bottom: 14px;
+  font-size: 11px;
   font-family: 'Audiowide', cursive;
 }
 
-/* Animation */
 @keyframes modalSlideIn {
-  from {
-    transform: translateY(-30px);
-    opacity: 0;
-  }
-  to {
-    transform: translateY(0);
-    opacity: 1;
-  }
+  from { transform: translateY(-20px) scale(0.97); opacity: 0; }
+  to { transform: translateY(0) scale(1); opacity: 1; }
 }
 
-/* Responsive */
 @media (max-width: 480px) {
-  .settings-modal-content {
-    padding: 20px;
-  }
-  
-  .gender-radio-group {
-    flex-direction: column;
-    gap: 10px;
-  }
-  
-  .gender-radio {
-    width: 100%;
-  }
-  
-  .theme-label {
-    font-size: 14px;
-  }
-  
-  .theme-icon {
-    font-size: 18px;
-  }
-  
-  .gender-label {
-    font-size: 14px;
-  }
-  
-  .gender-icon {
-    font-size: 16px;
-  }
+  .settings-modal-header { padding: 18px 20px; }
+  .settings-modal-body { padding: 20px; }
+  .gender-radio-group { flex-direction: column; gap: 8px; }
+  .theme-label, .gender-label { font-size: 12px; }
 }

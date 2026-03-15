@@ -1,13 +1,15 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useRef, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { auth, signOut } from '../firebase';
 import useStepCounter from '../hooks/useStepCounter';
 import './HealthFitness.css';
+import './MobileSidebar.css';
 
 function HealthFitness() {
   const [user, setUser] = useState(null);
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState('health');
+  const [sidebarOpen, setSidebarOpen] = useState(false);
   const [newHabit, setNewHabit] = useState('');
   
   // Step counter hook
@@ -15,7 +17,8 @@ function HealthFitness() {
     steps: autoSteps, 
     isWalking, 
     error: stepError, 
-    permissionGranted
+    permissionGranted,
+    requestPermission: requestStepPermission
   } = useStepCounter(true);
   
   // Health Data State with expanded stats
@@ -1187,63 +1190,77 @@ function HealthFitness() {
     localStorage.setItem(healthKey, JSON.stringify(data));
   };
 
-  // Update steps from auto-counter
+  // Update steps from auto-counter.
+  // The hook fires autoSteps as a running total (increments by 1 each step).
+  // We track the previous value so we only ADD the delta to stored steps.
+  const prevAutoStepsRef = useRef(0);
   useEffect(() => {
-    if (user && autoSteps > 0) {
-      setHealthData(prev => {
-        const dataWithReset = checkAndResetSteps(prev);
-        if (Math.abs(autoSteps - dataWithReset.steps.current) > 5) {
-          const updated = {
-            ...dataWithReset,
-            steps: { ...dataWithReset.steps, current: autoSteps }
-          };
-          const dataWithStats = updateAllStats(updated);
-          saveHealthData(user.uid, dataWithStats);
-          return dataWithStats;
-        }
-        return dataWithReset;
-      });
-    }
+    if (!user || autoSteps === 0) return;
+
+    const delta = autoSteps - prevAutoStepsRef.current;
+    prevAutoStepsRef.current = autoSteps;
+
+    // Only process positive, realistic deltas (1–3 steps per sensor event)
+    if (delta <= 0 || delta > 10) return;
+
+    setHealthData(prev => {
+      const dataWithReset = checkAndResetSteps(prev);
+      const newStepCount = (dataWithReset.steps.current || 0) + delta;
+      const updated = {
+        ...dataWithReset,
+        steps: { ...dataWithReset.steps, current: newStepCount }
+      };
+      const dataWithStats = updateAllStats(updated);
+      saveHealthData(user.uid, dataWithStats);
+      return dataWithStats;
+    });
   }, [autoSteps, user]);
 
   // Auth state observer
   useEffect(() => {
-    const unsubscribe = auth.onAuthStateChanged((user) => {
-      if (user) {
-        setUser(user);
-        loadHealthData(user.uid);
+    const unsubscribe = auth.onAuthStateChanged((authUser) => {
+      if (authUser) {
+        setUser(authUser);
+        loadHealthData(authUser.uid);
         setLoading(false);
       } else {
         navigate('/login');
       }
     });
+    return () => unsubscribe();
+  }, [navigate]);
 
+  // Midnight-reset interval – runs every minute to check for day rollovers
+  useEffect(() => {
     const interval = setInterval(() => {
-      if (user) {
-        setHealthData(prev => {
-          let updated = checkAndResetWaterIntake(prev);
-          updated = checkAndResetSteps(updated);
-          updated = checkAndResetSleep(updated);
-          updated = checkAndResetWorkout(updated);
-          
-          // Check if it's midnight to update stats
-          const now = new Date();
-          if (now.getHours() === 0 && now.getMinutes() === 0) {
-            updated = saveDailyToHistory(updated);
-          }
-          
-          const dataWithStats = updateAllStats(updated);
-          if (dataWithStats !== prev) saveHealthData(user.uid, dataWithStats);
-          return dataWithStats;
-        });
-      }
+      setHealthData(prev => {
+        let updated = checkAndResetWaterIntake(prev);
+        updated = checkAndResetSteps(updated);
+        updated = checkAndResetSleep(updated);
+        updated = checkAndResetWorkout(updated);
+
+        const now = new Date();
+        if (now.getHours() === 0 && now.getMinutes() === 0) {
+          updated = saveDailyToHistory(updated);
+        }
+
+        const dataWithStats = updateAllStats(updated);
+
+        // Only persist if something actually changed
+        if (JSON.stringify(dataWithStats) !== JSON.stringify(prev)) {
+          // We use a functional update of user inside setState to avoid stale closure
+          setUser(u => {
+            if (u) saveHealthData(u.uid, dataWithStats);
+            return u;
+          });
+        }
+
+        return dataWithStats;
+      });
     }, 60000);
 
-    return () => {
-      unsubscribe();
-      clearInterval(interval);
-    };
-  }, [navigate, user]);
+    return () => clearInterval(interval);
+  }, []);
 
   // Handlers
   const handleLogout = async () => {
@@ -1411,16 +1428,38 @@ function HealthFitness() {
   const { current, previous } = healthData.monthlyStats;
   const weightChange = calculateWeightChange();
 
+  const handleMobileNav = (tab) => {
+    handleNavigation(tab);
+    setSidebarOpen(false);
+  };
+
   return (
     <div className="health-container">
+      {/* Mobile Header */}
+      <div className="mobile-header">
+        <button 
+          className={`hamburger-btn ${sidebarOpen ? 'open' : ''}`}
+          onClick={() => setSidebarOpen(!sidebarOpen)}
+          aria-label="Toggle menu"
+        >
+          <span></span><span></span><span></span>
+        </button>
+        <span className="mobile-header-logo">LIFELEADGER</span>
+        <div className="mobile-header-actions"></div>
+      </div>
+
+      {sidebarOpen && (
+        <div className="sidebar-overlay visible" onClick={() => setSidebarOpen(false)} />
+      )}
+
       {/* Sidebar */}
-      <div className="sidebar">
+      <div className={`sidebar ${sidebarOpen ? 'mobile-open' : ''}`}>
         <div className="sidebar-header">
           <h2 className="sidebar-logo">LIFELEADGER</h2>
         </div>
         <div className="sidebar-menu">
           {['home', 'activity', 'financial', 'health'].map(tab => (
-            <div key={tab} className={`menu-item ${activeTab === tab ? 'active' : ''}`} onClick={() => handleNavigation(tab)}>
+            <div key={tab} className={`menu-item ${activeTab === tab ? 'active' : ''}`} onClick={() => handleMobileNav(tab)}>
               <span className="menu-text">
                 {tab === 'home' ? 'Home' : tab === 'activity' ? 'Activity Tracking' : tab === 'financial' ? 'Financial Tracking' : 'Health & Fitness'}
               </span>
@@ -1432,6 +1471,28 @@ function HealthFitness() {
           <button className="logout-btn" onClick={handleLogout}>Logout</button>
         </div>
       </div>
+
+      {/* Mobile Bottom Nav */}
+      <nav className="mobile-bottom-nav">
+        <div className="mobile-bottom-nav-items">
+          <div className={`mobile-nav-item ${activeTab === 'home' ? 'active' : ''}`} onClick={() => handleMobileNav('home')}>
+            <span className="mobile-nav-icon">🏠</span>
+            <span className="mobile-nav-label">Home</span>
+          </div>
+          <div className={`mobile-nav-item ${activeTab === 'activity' ? 'active' : ''}`} onClick={() => handleMobileNav('activity')}>
+            <span className="mobile-nav-icon">✅</span>
+            <span className="mobile-nav-label">Activity</span>
+          </div>
+          <div className={`mobile-nav-item ${activeTab === 'financial' ? 'active' : ''}`} onClick={() => handleMobileNav('financial')}>
+            <span className="mobile-nav-icon">💰</span>
+            <span className="mobile-nav-label">Finance</span>
+          </div>
+          <div className={`mobile-nav-item ${activeTab === 'health' ? 'active' : ''}`} onClick={() => handleMobileNav('health')}>
+            <span className="mobile-nav-icon">💪</span>
+            <span className="mobile-nav-label">Health</span>
+          </div>
+        </div>
+      </nav>
 
       {/* Main Content */}
       <div className="health-main-content">
@@ -1468,8 +1529,20 @@ function HealthFitness() {
               <div className="overview-card steps-card">
                 <h3 className="card-label">Steps {isWalking && '🚶‍♂️'}</h3>
                 <div className="progress-container">
+                  {/* iOS permission prompt */}
                   {!permissionGranted && stepError && (
-                    <div className="sensor-error"><small className="error-text">{stepError}</small></div>
+                    <div className="sensor-error">
+                      <small className="error-text">{stepError}</small>
+                      {typeof DeviceMotionEvent !== 'undefined' &&
+                       typeof DeviceMotionEvent.requestPermission === 'function' && (
+                        <button
+                          className="grant-permission-btn"
+                          onClick={(e) => { e.stopPropagation(); requestStepPermission(); }}
+                        >
+                          Grant Permission
+                        </button>
+                      )}
+                    </div>
                   )}
                   <div className="progress-info">
                     <span className="progress-value">{healthData?.steps?.current?.toLocaleString() || '0'}/{healthData?.steps?.goal?.toLocaleString() || '0'}</span>
@@ -1479,7 +1552,12 @@ function HealthFitness() {
                     <div className="progress-fill steps-progress" style={{ width: `${stepsPercentage}%` }}></div>
                   </div>
                   <div className="step-status">
-                    {isWalking ? <span className="walking-indicator">🚶 Walking</span> : <span className="idle-indicator">💤 No movement</span>}
+                    {permissionGranted
+                      ? isWalking
+                        ? <span className="walking-indicator">🚶 Walking…</span>
+                        : <span className="idle-indicator">💤 No movement</span>
+                      : <span className="idle-indicator">📵 Sensor inactive</span>
+                    }
                   </div>
                   <div className="reset-indicator">
                     <small className="reset-text">Resets at midnight</small>

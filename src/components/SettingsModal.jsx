@@ -129,7 +129,6 @@ function SettingsModal({ isOpen, onClose, user }) {
                   />
                   <span className="radio-custom"></span>
                   <span className="gender-label">
-  
                     Male
                   </span>
                 </label>
@@ -144,7 +143,6 @@ function SettingsModal({ isOpen, onClose, user }) {
                   />
                   <span className="radio-custom"></span>
                   <span className="gender-label">
-
                     Female
                   </span>
                 </label>

@@ -1,139 +1,143 @@
 .pending-modal-overlay {
   position: fixed;
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: 0;
+  inset: 0;
   background: rgba(0, 0, 0, 0.85);
   display: flex;
   align-items: center;
   justify-content: center;
   z-index: 2000;
-  backdrop-filter: blur(8px);
+  backdrop-filter: blur(10px);
 }
 
 .pending-modal-content {
   background: var(--bg-primary);
-  border: 2px solid var(--accent-color);
-  border-radius: 20px;
+  border: 1px solid rgba(34, 211, 238, 0.25);
+  border-radius: 18px;
   width: 90%;
   max-width: 500px;
   max-height: 80vh;
   overflow-y: auto;
-  box-shadow: 0 20px 40px rgba(0, 0, 0, 0.4);
-  animation: modalSlideIn 0.3s ease;
+  box-shadow: 0 25px 60px rgba(0,0,0,0.5), 0 0 40px rgba(34,211,238,0.05);
+  animation: modalSlideIn 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+  position: relative;
+}
+
+.pending-modal-content::before {
+  content: '';
+  position: absolute;
+  top: 0; left: 0; right: 0;
+  height: 2px;
+  background: linear-gradient(90deg, transparent, var(--accent-color), transparent);
 }
 
 .pending-modal-header {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding: 20px 25px;
+  padding: 22px 26px;
   border-bottom: 1px solid var(--border-color);
+  position: sticky;
+  top: 0;
+  background: var(--bg-primary);
+  z-index: 10;
 }
 
 .pending-modal-header h2 {
-  color: var(--accent-color);
+  color: var(--text-primary);
   margin: 0;
-  font-size: 24px;
+  font-size: 16px;
   font-family: 'Audiowide', cursive;
+  letter-spacing: 2px;
+  text-transform: uppercase;
 }
 
 .close-btn {
   background: none;
-  border: none;
+  border: 1px solid rgba(34, 211, 238, 0.15);
   color: var(--text-secondary);
-  font-size: 28px;
+  font-size: 18px;
   cursor: pointer;
-  padding: 0;
-  width: 40px;
-  height: 40px;
+  width: 36px; height: 36px;
   display: flex;
   align-items: center;
   justify-content: center;
-  border-radius: 50%;
+  border-radius: 8px;
   transition: all 0.2s;
 }
 
 .close-btn:hover {
-  background: var(--hover-bg);
-  color: var(--text-primary);
+  background: rgba(255, 87, 87, 0.08);
+  border-color: var(--danger-color);
+  color: var(--danger-color);
 }
 
-.pending-modal-body {
-  padding: 25px;
-  min-height: 200px;
-}
+.pending-modal-body { padding: 24px 26px; min-height: 200px; }
 
 .pending-count {
   color: var(--text-secondary);
-  font-size: 16px;
-  margin-bottom: 20px;
+  font-size: 11px;
+  margin-bottom: 18px;
   text-align: center;
   font-family: 'Audiowide', cursive;
+  letter-spacing: 1px;
+  text-transform: uppercase;
+  padding: 8px 16px;
+  background: var(--bg-secondary);
+  border-radius: 20px;
+  display: inline-block;
+  width: 100%;
 }
 
 .pending-todo-list {
   list-style: none;
   display: flex;
   flex-direction: column;
-  gap: 10px;
+  gap: 8px;
   max-height: 300px;
   overflow-y: auto;
-  padding-right: 5px;
+  padding-right: 4px;
 }
 
-.pending-todo-list::-webkit-scrollbar {
-  width: 5px;
-}
-
-.pending-todo-list::-webkit-scrollbar-track {
-  background: var(--bg-secondary);
-  border-radius: 10px;
-}
-
-.pending-todo-list::-webkit-scrollbar-thumb {
-  background: var(--accent-color);
-  border-radius: 10px;
-}
+.pending-todo-list::-webkit-scrollbar { width: 4px; }
+.pending-todo-list::-webkit-scrollbar-track { background: var(--bg-secondary); border-radius: 4px; }
+.pending-todo-list::-webkit-scrollbar-thumb { background: var(--accent-color); border-radius: 4px; }
 
 .pending-todo-item {
   display: flex;
   align-items: center;
-  padding: 12px 15px;
+  padding: 12px 14px;
   background: var(--bg-secondary);
   border-radius: 10px;
   transition: all 0.2s ease;
   border: 1px solid transparent;
+  border-left: 3px solid rgba(34, 211, 238, 0.2);
 }
 
 .pending-todo-item:hover {
   background: var(--hover-bg);
-  border-color: var(--accent-color);
-  transform: translateX(5px);
+  border-color: rgba(34, 211, 238, 0.3);
+  border-left-color: var(--accent-color);
+  transform: translateX(4px);
 }
 
 .pending-checkbox {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  width: 24px;
-  height: 24px;
-  margin-right: 15px;
+  width: 22px; height: 22px;
+  margin-right: 14px;
   color: var(--accent-color);
-  font-size: 20px;
+  font-size: 18px;
   cursor: pointer;
   flex-shrink: 0;
-  transition: all 0.2s ease;
+  transition: transform 0.2s ease;
 }
 
-.pending-checkbox:hover {
-  transform: scale(1.1);
-}
+.pending-checkbox:hover { transform: scale(1.15); }
 
 .pending-todo-text {
   color: var(--text-primary);
-  font-size: 16px;
+  font-size: 14px;
   letter-spacing: 0.5px;
   flex: 1;
   font-family: 'Audiowide', cursive;
@@ -141,22 +145,16 @@
 
 .pending-remove-task {
   color: var(--text-secondary);
-  font-size: 16px;
+  font-size: 14px;
   cursor: pointer;
-  padding: 5px 10px;
+  padding: 4px 8px;
   opacity: 0;
   transition: all 0.2s ease;
   border-radius: 4px;
 }
 
-.pending-todo-item:hover .pending-remove-task {
-  opacity: 1;
-}
-
-.pending-remove-task:hover {
-  color: var(--danger-color);
-  background: rgba(255, 87, 87, 0.1);
-}
+.pending-todo-item:hover .pending-remove-task { opacity: 1; }
+.pending-remove-task:hover { color: var(--danger-color); background: rgba(255, 87, 87, 0.1); }
 
 .no-pending-tasks {
   display: flex;
@@ -169,80 +167,66 @@
 }
 
 .check-icon {
-  font-size: 60px;
+  font-size: 50px;
   color: var(--success-color);
-  margin-bottom: 15px;
+  margin-bottom: 14px;
+  filter: drop-shadow(0 0 10px rgba(75, 181, 67, 0.4));
 }
 
 .no-pending-tasks p {
-  font-size: 18px;
-  margin-bottom: 10px;
+  font-size: 16px;
+  margin-bottom: 8px;
   font-family: 'Audiowide', cursive;
+  color: var(--text-primary);
+  letter-spacing: 1px;
 }
 
 .no-pending-tasks .sub-text {
-  font-size: 14px;
+  font-size: 11px;
   color: var(--text-secondary);
-  opacity: 0.7;
+  opacity: 0.6;
+  font-style: italic;
 }
 
 .pending-modal-footer {
   display: flex;
   justify-content: center;
-  padding: 20px 25px;
+  padding: 18px 26px;
   border-top: 1px solid var(--border-color);
 }
 
 .pending-modal-btn {
-  padding: 12px 30px;
-  border: 2px solid var(--accent-color);
+  padding: 11px 28px;
+  border: 1px solid rgba(34, 211, 238, 0.3);
   border-radius: 8px;
   background: transparent;
   font-family: 'Audiowide', cursive;
-  font-size: 16px;
+  font-size: 12px;
   cursor: pointer;
   transition: all 0.3s;
-  letter-spacing: 0.5px;
+  letter-spacing: 1.5px;
   min-width: 120px;
+  text-transform: uppercase;
 }
 
-.close-modal-btn {
-  color: var(--accent-color);
-}
+.close-modal-btn { color: var(--accent-color); }
 
 .close-modal-btn:hover {
-  background: var(--accent-color);
-  color: var(--bg-primary);
-  transform: translateY(-2px);
+  background: rgba(34, 211, 238, 0.08);
+  border-color: var(--accent-color);
+  box-shadow: 0 0 15px rgba(34, 211, 238, 0.1);
+  transform: translateY(-1px);
 }
 
-/* Animation */
 @keyframes modalSlideIn {
-  from {
-    transform: translateY(-30px);
-    opacity: 0;
-  }
-  to {
-    transform: translateY(0);
-    opacity: 1;
-  }
+  from { transform: translateY(-20px) scale(0.97); opacity: 0; }
+  to { transform: translateY(0) scale(1); opacity: 1; }
 }
 
-/* Responsive */
 @media (max-width: 480px) {
-  .pending-modal-content {
-    padding: 20px;
-  }
-  
-  .pending-modal-header h2 {
-    font-size: 20px;
-  }
-  
-  .pending-todo-text {
-    font-size: 14px;
-  }
-  
-  .no-pending-tasks p {
-    font-size: 16px;
-  }
+  .pending-modal-header { padding: 18px 20px; }
+  .pending-modal-body { padding: 20px; }
+  .pending-modal-header h2 { font-size: 14px; }
+  .pending-todo-text { font-size: 12px; }
+  .no-pending-tasks p { font-size: 14px; }
 }

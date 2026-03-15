@@ -2,11 +2,13 @@ import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { auth, signOut } from '../firebase';
 import './FinancialTracking.css';
+import './MobileSidebar.css';
 
 function FinancialTracking() {
   const [user, setUser] = useState(null);
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState('financial');
+  const [sidebarOpen, setSidebarOpen] = useState(false);
   const [selectedMonth, setSelectedMonth] = useState(() => {
     const date = new Date();
     const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
@@ -517,43 +519,50 @@ function FinancialTracking() {
   const totalSavings = getTotalSavings();
   const savingsItems = getSavingsItems();
 
+  const handleMobileNav = (tab) => {
+    handleNavigation(tab);
+    setSidebarOpen(false);
+  };
+
   return (
     <div className="financial-container">
+      {/* Mobile Header */}
+      <div className="mobile-header">
+        <button 
+          className={`hamburger-btn ${sidebarOpen ? 'open' : ''}`}
+          onClick={() => setSidebarOpen(!sidebarOpen)}
+          aria-label="Toggle menu"
+        >
+          <span></span><span></span><span></span>
+        </button>
+        <span className="mobile-header-logo">LIFELEADGER</span>
+        <div className="mobile-header-actions"></div>
+      </div>
+
+      {sidebarOpen && (
+        <div className="sidebar-overlay visible" onClick={() => setSidebarOpen(false)} />
+      )}
+
       {/* Left Sidebar */}
-      <div className="sidebar">
+      <div className={`sidebar ${sidebarOpen ? 'mobile-open' : ''}`}>
         <div className="sidebar-header">
           <h2 className="sidebar-logo">LIFELEADGER</h2>
         </div>
         
         <div className="sidebar-menu">
-          <div 
-            className={`menu-item ${activeTab === 'home' ? 'active' : ''}`}
-            onClick={() => handleNavigation('home')}
-          >
+          <div className={`menu-item ${activeTab === 'home' ? 'active' : ''}`} onClick={() => handleMobileNav('home')}>
             <span className="menu-text">Home</span>
             <span className="menu-indicator"></span>
           </div>
-          
-          <div 
-            className={`menu-item ${activeTab === 'activity' ? 'active' : ''}`}
-            onClick={() => handleNavigation('activity')}
-          >
+          <div className={`menu-item ${activeTab === 'activity' ? 'active' : ''}`} onClick={() => handleMobileNav('activity')}>
             <span className="menu-text">Activity Tracking</span>
             <span className="menu-indicator"></span>
           </div>
-          
-          <div 
-            className={`menu-item ${activeTab === 'financial' ? 'active' : ''}`}
-            onClick={() => handleNavigation('financial')}
-          >
+          <div className={`menu-item ${activeTab === 'financial' ? 'active' : ''}`} onClick={() => handleMobileNav('financial')}>
             <span className="menu-text">Financial Tracking</span>
             <span className="menu-indicator"></span>
           </div>
-
-          <div 
-            className={`menu-item ${activeTab === 'health' ? 'active' : ''}`}
-            onClick={() => handleNavigation('health')}
-          >
+          <div className={`menu-item ${activeTab === 'health' ? 'active' : ''}`} onClick={() => handleMobileNav('health')}>
             <span className="menu-text">Health & Fitness</span>
             <span className="menu-indicator"></span>
           </div>
@@ -565,6 +574,28 @@ function FinancialTracking() {
           </button>
         </div>
       </div>
+
+      {/* Mobile Bottom Nav */}
+      <nav className="mobile-bottom-nav">
+        <div className="mobile-bottom-nav-items">
+          <div className={`mobile-nav-item ${activeTab === 'home' ? 'active' : ''}`} onClick={() => handleMobileNav('home')}>
+            <span className="mobile-nav-icon">🏠</span>
+            <span className="mobile-nav-label">Home</span>
+          </div>
+          <div className={`mobile-nav-item ${activeTab === 'activity' ? 'active' : ''}`} onClick={() => handleMobileNav('activity')}>
+            <span className="mobile-nav-icon">✅</span>
+            <span className="mobile-nav-label">Activity</span>
+          </div>
+          <div className={`mobile-nav-item ${activeTab === 'financial' ? 'active' : ''}`} onClick={() => handleMobileNav('financial')}>
+            <span className="mobile-nav-icon">💰</span>
+            <span className="mobile-nav-label">Finance</span>
+          </div>
+          <div className={`mobile-nav-item ${activeTab === 'health' ? 'active' : ''}`} onClick={() => handleMobileNav('health')}>
+            <span className="mobile-nav-icon">💪</span>
+            <span className="mobile-nav-label">Health</span>
+          </div>
+        </div>
+      </nav>
 
       {/* Main Content */}
       <div className="financial-main-content">
